@@ -1,9 +1,15 @@
 Base de Datos Diplomatic Fleet
+
 Descripción
+
+
 Base de datos desarrollada en PostgreSQL para la gestión de  alquiler de vehículos diplomáticos.
 
+
 Tablas principales
+
 clientes
+
 vehiculos
 reservas
 pagos
