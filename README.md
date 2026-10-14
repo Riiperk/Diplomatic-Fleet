@@ -5,3 +5,4 @@ Proyecto de Aplicación Web sobre Vehiculos diplomaticos desarrollado por:
 - Maria Camila Pacheco
 - Daniela Largo Corredor
   
+con el fin de crear una aplicación funcional para permitir a entidades diplomaticas alquilar vehiculos
