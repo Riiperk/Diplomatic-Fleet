@@ -1,31 +1,31 @@
-Base de Datos Diplomatic Fleet
+-Base de Datos Diplomatic Fleet
 
-Descripción
+-Descripción
 
-Base de datos desarrollada en PostgreSQL para la gestión de  alquiler de vehículos diplomáticos.
+-Base de datos desarrollada en PostgreSQL para la gestión de  alquiler de vehículos diplomáticos.
 
 
-Tablas principales
+-Tablas principales
 
-clientes
+-clientes
 
-vehiculos
+-vehiculos
 
-reservas
+-reservas
 
-pagos
+-pagos
 
-Relaciones
+-Relaciones
 
-Un cliente puede realizar varias reservas.
+-Un cliente puede realizar varias reservas.
 
-Un vehículo puede tener varias reservas.
+-Un vehículo puede tener varias reservas.
 
-Cada reserva genera un pago.
+-Cada reserva genera un pago.
 
-Tecnologías utilizadas
+-Tecnologías utilizadas
 
-PostgreSQL
+-PostgreSQL
 
 Autora
 
