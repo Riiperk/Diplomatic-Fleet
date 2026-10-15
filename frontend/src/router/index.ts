@@ -21,9 +21,18 @@ const router = createRouter({
 
       /**
        * La importación dinámica carga la vista de acceso únicamente
-       * cuando el usuario navega a la ruta `/login`.
+       * cuando el usuario navega a la ruta de inicio de sesión.
        */
       component: () => import('@/views/LoginView.vue'),
+    },
+    {
+      path: '/vehiculos',
+      name: 'vehiculos',
+
+      /**
+       * Carga de forma diferida la vista de gestión de vehículos.
+       */
+      component: () => import('@/views/VehiculosView.vue'),
     },
   ],
 })
