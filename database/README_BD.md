@@ -29,9 +29,6 @@
 
 -PostgreSQL
 
-Autora
-
-Sirley Xiomara Lobatón
 =======
 Base de Datos - Diplomatic Fleet
 Descripción
