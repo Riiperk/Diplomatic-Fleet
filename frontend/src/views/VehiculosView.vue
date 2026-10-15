@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import DemoSidebar from '@/components/layout/DemoSidebar.vue'
 import {
-  eliminarCredenciales,
   listarVehiculos,
   registrarVehiculo,
   type EstadoVehiculo,
@@ -21,7 +20,7 @@ import {
  * y de alto contraste, manteniendo la legibilidad necesaria para
  * formularios y tablas administrativas.
  */
-const router = useRouter()
+
 
 const vehiculos = ref<VehiculoResponse[]>([])
 const cargando = ref(false)
@@ -259,15 +258,6 @@ function cerrarMenuMovil(): void {
   menuMovilVisible.value = false
 }
 
-/**
- * Finaliza la sesión temporal y regresa al inicio de sesión.
- */
-async function cerrarSesion(): Promise<void> {
-  eliminarCredenciales()
-  cerrarMenuMovil()
-  await router.push('/login')
-}
-
 onMounted(cargarVehiculos)
 </script>
 
@@ -297,100 +287,10 @@ onMounted(cargarVehiculos)
       @click="cerrarMenuMovil"
     ></div>
 
-    <aside
-      class="sidebar"
-      :class="{ 'is-visible': menuMovilVisible }"
-    >
-      <div class="brand-block">
-        <div class="brand-mark">
-          <span>DF</span>
-        </div>
-
-        <div>
-          <p class="brand-eyebrow">Diplomatic</p>
-          <strong>Fleet</strong>
-        </div>
-      </div>
-
-      <div class="sidebar-divider"></div>
-
-      <p class="menu-caption">Control central</p>
-
-      <nav
-        class="main-navigation"
-        aria-label="Navegación principal"
-      >
-        <a
-          class="navigation-item"
-          href="#resumen"
-          @click="cerrarMenuMovil"
-        >
-          <span class="navigation-number">01</span>
-
-          <span>
-            <strong>Resumen</strong>
-            <small>Estado de la flota</small>
-          </span>
-        </a>
-
-        <a
-          class="navigation-item is-active"
-          href="#vehiculos"
-          @click="cerrarMenuMovil"
-        >
-          <span class="navigation-number">02</span>
-
-          <span>
-            <strong>Vehículos</strong>
-            <small>Registro y consulta</small>
-          </span>
-        </a>
-
-        <button
-          class="navigation-item is-disabled"
-          type="button"
-          disabled
-        >
-          <span class="navigation-number">03</span>
-
-          <span>
-            <strong>Documentos</strong>
-            <small>Próxima integración</small>
-          </span>
-        </button>
-
-        <button
-          class="navigation-item is-disabled"
-          type="button"
-          disabled
-        >
-          <span class="navigation-number">04</span>
-
-          <span>
-            <strong>Mantenimiento</strong>
-            <small>Próxima integración</small>
-          </span>
-        </button>
-      </nav>
-
-      <div class="sidebar-status">
-        <span class="connection-light"></span>
-
-        <div>
-          <strong>Sistema conectado</strong>
-          <small>Spring Boot + PostgreSQL</small>
-        </div>
-      </div>
-
-      <button
-        class="logout-button"
-        type="button"
-        @click="cerrarSesion"
-      >
-        <span>Cerrar sesión</span>
-        <strong>↗</strong>
-      </button>
-    </aside>
+    <DemoSidebar
+      :mobile-visible="menuMovilVisible"
+      @close-mobile="cerrarMenuMovil"
+    />
 
     <section class="workspace">
       <header class="hero-header">
@@ -1236,7 +1136,7 @@ onMounted(cargarVehiculos)
   position: relative;
   z-index: 1;
   min-height: 100vh;
-  margin-left: 285px;
+  margin-left: 298px;
   padding: 30px 34px 22px;
 }
 

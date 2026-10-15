@@ -1,11 +1,74 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import {
+  createRouter,
+  createWebHistory,
+  type RouteRecordRaw,
+} from 'vue-router'
+
+/**
+ * Rutas demostrativas que comparten la vista genérica de módulos.
+ */
+const demoRoutes: RouteRecordRaw[] = [
+  {
+    path: '/inicio',
+    name: 'inicio',
+    component: () =>
+      import('@/views/demo/DemoModulesView.vue'),
+  },
+  {
+    path: '/clientes',
+    name: 'clientes',
+    component: () =>
+      import('@/views/demo/DemoModulesView.vue'),
+  },
+  {
+    path: '/documentos',
+    name: 'documentos',
+    component: () =>
+      import('@/views/demo/DemoModulesView.vue'),
+  },
+  {
+    path: '/mantenimientos',
+    name: 'mantenimientos',
+    component: () =>
+      import('@/views/demo/DemoModulesView.vue'),
+  },
+  {
+    path: '/disponibilidad',
+    name: 'disponibilidad',
+    component: () =>
+      import('@/views/demo/DemoModulesView.vue'),
+  },
+  {
+    path: '/solicitudes',
+    name: 'solicitudes',
+    component: () =>
+      import('@/views/demo/DemoModulesView.vue'),
+  },
+  {
+    path: '/validacion-conductor',
+    name: 'conductor',
+    component: () =>
+      import('@/views/demo/DemoModulesView.vue'),
+  },
+  {
+    path: '/cotizaciones',
+    name: 'cotizaciones',
+    component: () =>
+      import('@/views/demo/DemoModulesView.vue'),
+  },
+  {
+    path: '/usuarios',
+    name: 'usuarios',
+    component: () =>
+      import('@/views/demo/DemoModulesView.vue'),
+  },
+]
 
 /**
  * Enrutador principal de Diplomatic Fleet.
  *
- * Utiliza el historial del navegador para ofrecer direcciones limpias.
- * Las vistas se cargan de forma diferida para reducir el tamaño inicial
- * del paquete y separar cada módulo funcional.
+ * Mantiene el acceso, la gestión funcional de vehículos y los módulos
+ * navegables utilizados durante la demo académica.
  */
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,21 +81,18 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-
-      /**
-       * La importación dinámica carga la vista de acceso únicamente
-       * cuando el usuario navega a la ruta de inicio de sesión.
-       */
       component: () => import('@/views/LoginView.vue'),
     },
     {
       path: '/vehiculos',
       name: 'vehiculos',
-
-      /**
-       * Carga de forma diferida la vista de gestión de vehículos.
-       */
-      component: () => import('@/views/VehiculosView.vue'),
+      component: () =>
+        import('@/views/VehiculosView.vue'),
+    },
+    ...demoRoutes,
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/inicio',
     },
   ],
 })

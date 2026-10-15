@@ -135,6 +135,10 @@ function obtenerCredenciales(): ApiCredentials {
 /**
  * Construye las cabeceras utilizadas por las peticiones autenticadas.
  *
+ * El encabezado X-Requested-With indica que la solicitud procede
+ * del frontend y evita que el navegador muestre su diálogo nativo
+ * cuando Spring Security responde con HTTP 401.
+ *
  * @returns Cabeceras HTTP con autenticación Basic y contenido JSON.
  */
 function crearHeaders(): HeadersInit {
@@ -148,6 +152,7 @@ function crearHeaders(): HeadersInit {
     Accept: 'application/json',
     'Content-Type': 'application/json',
     Authorization: `Basic ${basicToken}`,
+    'X-Requested-With': 'XMLHttpRequest',
   }
 }
 
