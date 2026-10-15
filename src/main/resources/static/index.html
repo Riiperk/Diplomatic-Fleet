@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema académico de gestión de servicios vehiculares diplomáticos.">
+    <meta name="keywords" content="vehículos, instituciones, Kotlin, Spring Boot, PostgreSQL">
+    <meta name="author" content="Equipo Diplomatic Fleet">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#c8102e">
+    <meta name="copyright" content="Equipo Diplomatic Fleet, 2026">
+
+    <title>Iniciar sesión | Diplomatic Fleet</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+<main class="login-page">
+
+    <!-- ================= PANEL VISUAL ================= -->
+    <section class="visual-panel" aria-labelledby="brand-title">
+        <div class="halftone-texture" aria-hidden="true"></div>
+        <div class="shard shard-black" aria-hidden="true"></div>
+        <div class="shard shard-white" aria-hidden="true"></div>
+        <div class="shard shard-red-dark" aria-hidden="true"></div>
+        <div class="institutional-silhouette" aria-hidden="true"></div>
+
+        <!-- Estrellas del panel visual (blancas y grises resaltan sobre el rojo) -->
+        <img class="star star-one"   src="assets/images/estrella_3.png" alt="" aria-hidden="true">
+        <img class="star star-two"   src="assets/images/estrella_6.png" alt="" aria-hidden="true">
+        <img class="star star-three" src="assets/images/estrella_7.png" alt="" aria-hidden="true">
+        <img class="star star-four"  src="assets/images/estrella_9.png" alt="" aria-hidden="true">
+
+        <!-- Pila de texto: se apila sin superponerse -->
+        <div class="visual-stack">
+            <div id="brand-title" class="brand-lockup">
+                <span class="brand-main">Diplomatic</span>
+                <span class="brand-secondary">Fleet</span>
+                <span class="brand-subtitle">Movilidad institucional</span>
+            </div>
+
+            <div class="visual-content">
+                <p class="visual-heading"><span>Servicios vehiculares para</span></p>
+                <p class="visual-heading"><span>misiones diplomáticas</span></p>
+                <p class="visual-description">
+                    Gestión segura de vehículos, solicitudes y conductores para entidades institucionales.
+                </p>
+            </div>
+        </div>
+
+        <div class="vehicle-container">
+            <div class="car-shard" aria-hidden="true"></div>
+            <img src="assets/images/diplomatic-sedan.png" alt="Sedán ejecutivo sin distintivos de marca">
+        </div>
+
+        <div class="bottom-stripes" aria-hidden="true"></div>
+        <p class="decorative-caption decorative-caption-left">Destinos que representan</p>
+    </section>
+
+    <!-- ================= PANEL DE ACCESO ================= -->
+    <section class="access-panel" aria-labelledby="login-title">
+        <div class="access-halftone" aria-hidden="true"></div>
+        <div class="access-shard" aria-hidden="true"></div>
+        <!-- Estrellas rojas sobre el fondo oscuro del panel de acceso -->
+        <img class="access-star access-star-one" src="assets/images/estrella_1.png" alt="" aria-hidden="true">
+        <img class="access-star access-star-two" src="assets/images/estrella_8.png" alt="" aria-hidden="true">
+
+        <article class="login-card">
+            <header class="login-header">
+                <h1 id="login-title"><span>Iniciar sesión</span></h1>
+            </header>
+
+            <form id="login-form" novalidate>
+                <div class="form-field">
+                    <label for="email">Correo electrónico</label>
+                    <input id="email" name="email" type="email" autocomplete="username"
+                           placeholder="nombre@institucion.gov" required>
+                    <small id="email-error" class="field-error" aria-live="polite"></small>
+                </div>
+
+                <div class="form-field">
+                    <label for="password">Contraseña</label>
+                    <div class="password-control">
+                        <input id="password" name="password" type="password" autocomplete="current-password"
+                               placeholder="Ingresa tu contraseña" minlength="8" required>
+                        <button id="toggle-password" class="password-toggle" type="button"
+                                aria-label="Mostrar contraseña" aria-controls="password" aria-pressed="false">👁</button>
+                    </div>
+                    <small id="password-error" class="field-error" aria-live="polite"></small>
+                </div>
+
+                <label class="legal-consent">
+                    <input id="accept-legal" name="acceptLegal" type="checkbox" required>
+                    <span>
+                        He leído y acepto los
+                        <button class="legal-link" type="button" data-modal-target="terms-modal">Términos de uso</button>
+                        y la
+                        <button class="legal-link" type="button" data-modal-target="privacy-modal">Política de privacidad</button>.
+                    </span>
+                </label>
+
+                <small id="legal-error" class="field-error" aria-live="polite"></small>
+                <div id="login-message" class="form-message" role="status" aria-live="polite"></div>
+
+                <button class="submit-button" type="submit"><span>Iniciar sesión</span></button>
+            </form>
+        </article>
+
+        <div class="academic-seal" aria-hidden="true"><span>DF</span><small>Demo académica</small></div>
+        <p class="decorative-caption-right">Control · Seguridad · Confianza</p>
+    </section>
+</main>
+
+<!-- MODAL TÉRMINOS DE USO -->
+<dialog id="terms-modal" class="legal-modal">
+    <article>
+        <header class="modal-header">
+            <h2>Términos de uso</h2>
+            <button class="modal-close" type="button" aria-label="Cerrar términos de uso">×</button>
+        </header>
+        <div class="modal-content">
+            <p>Diplomatic Fleet es una aplicación académica creada para demostrar procesos de gestión de servicios vehiculares institucionales.</p>
+            <h3>Uso autorizado</h3>
+            <p>El acceso está limitado a personas autorizadas por el equipo responsable del proyecto.</p>
+            <h3>Datos de demostración</h3>
+            <p>Durante las pruebas deben utilizarse datos ficticios. No se deben registrar contraseñas reales, documentos de identidad ni información institucional confidencial.</p>
+            <h3>Alcance</h3>
+            <p>La demo guarda datos en el almacenamiento local del navegador y no garantiza disponibilidad ni conservación de la información.</p>
+        </div>
+    </article>
+</dialog>
+
+<!-- MODAL POLÍTICA DE PRIVACIDAD -->
+<dialog id="privacy-modal" class="legal-modal">
+    <article>
+        <header class="modal-header">
+            <h2>Política de privacidad</h2>
+            <button class="modal-close" type="button" aria-label="Cerrar política de privacidad">×</button>
+        </header>
+        <div class="modal-content">
+            <p>Los datos introducidos se utilizan únicamente para demostrar las funcionalidades académicas del sistema.</p>
+            <h3>Credenciales</h3>
+            <p>Las contraseñas no se almacenan en texto plano y deben protegerse en el backend mediante un algoritmo seguro (BCrypt).</p>
+            <h3>Información personal</h3>
+            <p>No deben utilizarse datos personales reales sin autorización expresa. Puede borrar los datos de la demo limpiando el almacenamiento del sitio.</p>
+        </div>
+    </article>
+</dialog>
+
+<script>
+    /* Diplomatic Fleet - Lógica del login (demo académica) */
+    const APP_URL = 'app.html'; // <- cambia por la página principal de tu sistema
+    const DEMO = { email: 'admin@diplomaticfleet.co', password: 'Demo1234' }; // solo demo, nunca en producción
+
+    const $ = (s) => document.querySelector(s);
+    const form = $('#login-form');
+    const emailInput = $('#email');
+    const passInput = $('#password');
+    const legalInput = $('#accept-legal');
+
+    /* Mostrar / ocultar contraseña */
+    $('#toggle-password').addEventListener('click', (e) => {
+        const visible = passInput.type === 'text';
+        passInput.type = visible ? 'password' : 'text';
+        e.currentTarget.setAttribute('aria-pressed', String(!visible));
+        e.currentTarget.setAttribute('aria-label', visible ? 'Mostrar contraseña' : 'Ocultar contraseña');
+        e.currentTarget.textContent = visible ? '👁' : '🙈';
+    });
+
+    /* Modales */
+    document.querySelectorAll('[data-modal-target]').forEach((t) =>
+        t.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById(t.dataset.modalTarget)?.showModal();
+        }));
+    document.querySelectorAll('.modal-close').forEach((b) =>
+        b.addEventListener('click', () => b.closest('dialog').close()));
+    document.querySelectorAll('dialog').forEach((d) =>
+        d.addEventListener('click', (e) => { if (e.target === d) d.close(); }));
+
+    /* Validación */
+    const setError = (id, msg) => { $(id).textContent = msg; };
+    function validar() {
+        let ok = true;
+        setError('#email-error', ''); setError('#password-error', ''); setError('#legal-error', '');
+        $('#login-message').textContent = ''; $('#login-message').className = 'form-message';
+
+        if (!emailInput.value.trim()) { setError('#email-error', 'Ingresa tu correo electrónico'); ok = false; }
+        else if (!emailInput.checkValidity()) { setError('#email-error', 'El correo no tiene un formato válido'); ok = false; }
+
+        if (passInput.value.length < 8) { setError('#password-error', 'La contraseña debe tener al menos 8 caracteres'); ok = false; }
+
+        if (!legalInput.checked) { setError('#legal-error', 'Debes aceptar los Términos de uso y la Política de privacidad'); ok = false; }
+        return ok;
+    }
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!validar()) return;
+
+        const correcto = emailInput.value.trim().toLowerCase() === DEMO.email && passInput.value === DEMO.password;
+        const msg = $('#login-message');
+        if (!correcto) {
+            msg.textContent = 'Credenciales incorrectas';
+            msg.className = 'form-message is-error';
+            return;
+        }
+        sessionStorage.setItem('df_session', '1');
+        msg.textContent = 'Acceso concedido...';
+        msg.className = 'form-message is-ok';
+        setTimeout(() => { window.location.href = APP_URL; }, 500);
+    });
+
+</script>
+</body>
+</html>
