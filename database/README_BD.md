@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 -Base de Datos Diplomatic Fleet
 
 -Descripción
@@ -63,4 +63,4 @@ CLIENTES
                |
                v
              PAGOS
->>>>>>> 2efa841 (Agrega documentacion de la base de datos)
+
