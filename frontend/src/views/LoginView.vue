@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import '@/assets/styles/login.css'
 import LegalModal from '@/components/login/LegalModal.vue'
 import LoginForm, {
@@ -7,15 +8,17 @@ import LoginForm, {
   type LoginCredentials,
 } from '@/components/login/LoginForm.vue'
 import VisualPanel from '@/components/login/VisualPanel.vue'
+import { guardarCredenciales } from '@/services/vehiculoService'
 
 /**
  * Vista principal del inicio de sesión.
  *
  * Coordina el panel visual, el formulario y los documentos legales.
- * La vista recibe las credenciales validadas por LoginForm, pero todavía
- * no realiza la autenticación porque el endpoint de Spring Boot se
- * implementará en una fase posterior.
+ * Las credenciales validadas se almacenan temporalmente durante la
+ * sesión para autenticar las peticiones enviadas a la API.
  */
+const router = useRouter()
+
 const activeLegalModal = ref<LegalDocumentType | null>(null)
 const loginMessage = ref('')
 const isLoginError = ref(false)
@@ -37,18 +40,27 @@ function closeLegalModal(): void {
 }
 
 /**
- * Recibe las credenciales validadas por LoginForm.
+ * Guarda temporalmente las credenciales de la demo y abre
+ * la vista de gestión de vehículos.
  *
- * Esta implementación temporal no guarda ni compara contraseñas.
- * La autenticación real se conectará posteriormente con el endpoint
- * seguro del backend.
+ * Durante esta fase, Spring Security utiliza el usuario técnico `user`.
+ * La contraseña introducida será validada cuando la vista de vehículos
+ * realice la primera petición a la API protegida.
  *
  * @param credentials Credenciales normalizadas por el formulario.
  */
-function handleLogin(credentials: LoginCredentials): void {
+async function handleLogin(
+  credentials: LoginCredentials,
+): Promise<void> {
   isLoginError.value = false
-  loginMessage.value =
-    `Formulario validado para ${credentials.email}. ` + 'La conexión con el backend está pendiente.'
+  loginMessage.value = 'Iniciando sesión...'
+
+  guardarCredenciales(
+    'user',
+    credentials.password,
+  )
+
+  await router.push('/vehiculos')
 }
 </script>
 
@@ -60,12 +72,18 @@ function handleLogin(credentials: LoginCredentials): void {
       <div class="access-halftone" aria-hidden="true"></div>
       <div class="access-shard" aria-hidden="true"></div>
 
-      <LoginForm @submit="handleLogin" @open-legal="openLegalModal" />
+      <LoginForm
+        @submit="handleLogin"
+        @open-legal="openLegalModal"
+      />
 
       <p
         v-if="loginMessage"
         class="form-message login-view-message"
-        :class="{ 'is-error': isLoginError, 'is-ok': !isLoginError }"
+        :class="{
+          'is-error': isLoginError,
+          'is-ok': !isLoginError,
+        }"
         role="status"
         aria-live="polite"
       >
@@ -77,7 +95,9 @@ function handleLogin(credentials: LoginCredentials): void {
         <small>Demo académica</small>
       </div>
 
-      <p class="decorative-caption-right">Control · Seguridad · Confianza</p>
+      <p class="decorative-caption-right">
+        Control · Seguridad · Confianza
+      </p>
     </section>
 
     <LegalModal
