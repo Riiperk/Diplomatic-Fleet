@@ -1,58 +1,235 @@
+Documentación Funcional de la Base de Datos
+Proyecto: Diplomatic Fleet
+1. Descripción General
 
+La base de datos Diplomatic Fleet ha sido diseñada para gestionar el proceso de alquiler de vehículos diplomáticos, permitiendo administrar la información de clientes, vehículos, reservas y pagos de forma organizada y eficiente.
 
+Su propósito principal es centralizar la información necesaria para el control de la flota vehicular, el registro de clientes, la gestión de reservas realizadas y el seguimiento de los pagos asociados a cada servicio.
 
-Evidencias de Consultas SQL
-En esta sección se presentan evidencias visuales de las consultas desarrolladas para validar el correcto funcionamiento de la base de datos del proyecto Diplomatic Fleet. Estas consultas permiten verificar la integridad de los datos almacenados y facilitan el análisis de la información registrada en el sistema.
+2. Objetivo de la Base de Datos
 
-Información de Clientes
-Esta consulta permite visualizar la información general de los clientes registrados en el sistema, incluyendo los datos necesarios para la gestión de reservas y el seguimiento de los usuarios.
+La base de datos permite:
 
-![Información de Clientes](imagenes/informacion clientes.png)
+Registrar clientes y mantener actualizada su información.
+Gestionar una flota de vehículos clasificados por categorías.
+Controlar la disponibilidad de los vehículos.
+Registrar reservas realizadas por los clientes.
+Hacer seguimiento al estado de cada reserva.
+Gestionar los pagos generados por los alquileres.
+Generar consultas e informes para la toma de decisiones.
+3. Componentes de la Base de Datos
 
-Información de Reservas
-Consulta diseñada para mostrar el detalle completo de las reservas realizadas por los clientes, facilitando el seguimiento de las solicitudes de alquiler de vehículos.
+La estructura está conformada por siete tablas principales:
 
-![Información de Reservas](imagenes/informacion reservas.png)
+3.1 Clientes
 
-Estado de Reservas
-Permite identificar el estado actual de cada reserva, facilitando el control de reservas activas, finalizadas o pendientes dentro del sistema.
+Almacena la información de los usuarios que realizan reservas.
 
-![Estado de Reservas](imagenes/estado de reservas.png)
+Información registrada
+Identificación del cliente
+Nombre
+Apellido
+Teléfono
+Dirección
+Correo electrónico
+Documento de identificación
+Fecha de registro
+Estado activo/inactivo
+Funcionalidad
 
-Método de Pagos
-Consulta orientada a visualizar los diferentes métodos de pago registrados, permitiendo verificar la trazabilidad de las transacciones realizadas.
+Permite identificar de manera única a cada cliente y asociarlo con sus respectivas reservas.
 
-![Método de Pagos](imagenes/metodo de pagos.png)
+3.2 Categoría de Vehículos
 
-Reservas
-Presenta un listado general de las reservas almacenadas en la base de datos, proporcionando una visión global de las operaciones registradas.
+Permite clasificar los vehículos según su nivel de servicio.
 
-Reservas
+Categorías implementadas
+LOW COST
+VIP
+ALTA GAMA
+Funcionalidad
 
-Tiempo de Alquiler de Vehículos
-Consulta que permite analizar la duración de los alquileres realizados, información útil para evaluar la utilización de la flota vehicular.
+Facilita la segmentación y organización de la flota según el tipo de experiencia ofrecida al cliente.
 
-![Tiempo de Alquiler](imagenes/tiempo de alquiler vehiculos.png)
+3.3 Vehículos
 
-Reservas por Tiempo de Alquiler
-Muestra la relación entre cada reserva y el período de alquiler asociado, facilitando el análisis de disponibilidad y ocupación de los vehículos.
+Almacena la información de todos los vehículos disponibles para alquiler.
 
-Reservas por Tiempo de Alquiler
+Información registrada
+Placa
+Marca
+Modelo
+Color
+Tipo de combustible
+Capacidad de pasajeros
+Precio por día
+Disponibilidad
+Categoría
+Funcionalidad
 
-Modelo de Vehículos
-Permite visualizar los modelos de vehículos registrados en el sistema, contribuyendo a la administración y clasificación de la flota.
+Permite administrar la flota y conocer qué vehículos pueden ser reservados.
 
-![Modelo de Vehículos](imagenes/modelode vehiculo.png)
+3.4 Estados de Reserva
 
-Categorías de Vehículos
-Consulta utilizada para clasificar los vehículos según su categoría, facilitando la organización y búsqueda de unidades disponibles.
+Contiene los diferentes estados que puede tener una reserva.
 
-Categorías de Vehículos
+Estados registrados
+Pendiente
+Confirmada
+En curso
+Finalizada
+Cancelada
+Funcionalidad
 
-Características del Vehículo
-Presenta las características principales de cada vehículo registrado, proporcionando información relevante para el proceso de reserva y asignación.
+Permite controlar el ciclo de vida de una reserva desde su creación hasta su finalización.
 
-![Características del Vehículo](imagenes/caracteristicas del vehículo.png)
+3.5 Reservas
 
-Conclusión
-Las consultas implementadas permiten validar la estructura de la base de datos y garantizan el acceso eficiente a la información relacionada con clientes, vehículos, reservas y pagos. Estas evidencias demuestran el correcto funcionamiento de los procesos fundamentales del sistema Diplomatic Fleet.
+Representa el proceso principal del sistema.
+
+Información registrada
+Cliente asociado
+Vehículo reservado
+Fecha de inicio
+Fecha de finalización
+Valor total
+Estado de la reserva
+Funcionalidad
+
+Conecta clientes, vehículos y estados de reserva para gestionar el alquiler de vehículos.
+
+3.6 Métodos de Pago
+
+Almacena los métodos de pago aceptados por el sistema.
+
+Métodos registrados
+Tarjeta Crédito
+Tarjeta Débito
+Efectivo
+PSE
+Transferencia
+Nequi
+Daviplata
+Funcionalidad
+
+Permite clasificar y controlar las transacciones realizadas.
+
+3.7 Pagos
+
+Registra los pagos efectuados por los clientes.
+
+Información registrada
+Reserva asociada
+Método de pago
+Valor pagado
+Fecha de pago
+Funcionalidad
+
+Permite llevar el control financiero de las reservas realizadas.
+
+4. Relaciones de la Base de Datos
+
+La base de datos presenta las siguientes relaciones:
+
+Cliente - Reserva
+Plain Text
+CLIENTES (1)
+|
+|
+|------< RESERVAS (N)
+
+Un cliente puede realizar múltiples reservas.
+
+Vehículo - Reserva
+Plain Text
+VEHICULOS (1)
+|
+|
+|------< RESERVAS (N)
+
+Un vehículo puede estar asociado a múltiples reservas a lo largo del tiempo.
+
+Estado - Reserva
+Plain Text
+ESTADO_RESERVA (1)
+|
+|
+|------< RESERVAS (N)
+
+Cada reserva posee un único estado.
+
+Categoría - Vehículo
+Plain Text
+CATEGORIA_VEHICULOS (1)
+|
+|
+|------< VEHICULOS (N)
+
+Una categoría puede contener varios vehículos.
+
+Reserva - Pago
+Plain Text
+RESERVAS (1)
+|
+|
+|------< PAGOS (N)
+
+Una reserva puede generar uno o varios registros de pago.
+
+Método de Pago - Pago
+Plain Text
+METODO_PAGOS (1)
+|
+|
+|------< PAGOS (N)
+
+Un método de pago puede utilizarse en múltiples transacciones.
+
+5. Funcionalidades que Brinda el Sistema
+
+La base de datos permite realizar las siguientes operaciones:
+
+Gestión de Clientes
+Registro de clientes.
+Modificación de información personal.
+Consulta de historial de reservas.
+Gestión de Vehículos
+Registro de vehículos.
+Consulta de disponibilidad.
+Clasificación por categoría.
+Gestión de precios de alquiler.
+Gestión de Reservas
+Registro de reservas.
+Seguimiento de estados.
+Control de fechas de alquiler.
+Cálculo de valores a pagar.
+Gestión de Pagos
+Registro de transacciones.
+Consulta de historial de pagos.
+Validación de métodos de pago.
+Análisis de Información
+
+Permite generar reportes como:
+
+Clientes registrados.
+Vehículos disponibles.
+Vehículos más reservados.
+Reservas activas.
+Reservas canceladas.
+Ingresos obtenidos.
+Métodos de pago más utilizados.
+Ingresos por categoría de vehículo.
+
+6. Beneficios de la Implementación
+
+La base de datos proporciona:
+
+Organización estructurada de la información.
+Seguridad e integridad de los datos.
+Reducción de inconsistencias mediante claves primarias y foráneas.
+Automatización de procesos relacionados con alquileres.
+Facilidad para generar informes y estadísticas.
+Escalabilidad para futuras funcionalidades.
+7. Conclusión
+
+La base de datos Diplomatic Fleet constituye el núcleo de información del sistema de alquiler de vehículos. Su diseño relacional permite gestionar eficientemente clientes, vehículos, reservas y pagos, garantizando consistencia, integridad y disponibilidad de la información. Además, proporciona una base sólida para el desarrollo de aplicaciones web, reportes administrativos y futuras ampliaciones del proyecto.
