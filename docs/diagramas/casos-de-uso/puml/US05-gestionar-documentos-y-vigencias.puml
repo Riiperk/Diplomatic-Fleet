@@ -1,0 +1,58 @@
+@startuml US05
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam ActorBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam RectangleFontStyle bold
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam UsecaseBorderColor<<Sistema>> #5B7A99
+skinparam UsecaseBackgroundColor<<Relacionado>> #FFF4D6
+skinparam UsecaseBorderColor<<Relacionado>> #B8860B
+skinparam UsecaseBackgroundColor<<Principal>> #DCEBFA
+skinparam UsecaseBorderWidth 1.5
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #123A63
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8860B
+
+title Figura 5. US05 - Gestionar documentos y vigencias\nDiagrama de casos de uso
+actor "Agente de\noperaciones" as AGE
+rectangle "Sistema Diplomatic Fleet\n(Vue.js + API Spring Boot + PostgreSQL)" as SYS {
+  usecase "US05\nGestionar documentos y vigencias" as UC <<Principal>>
+  usecase "Validar que el vehículo\nexiste" as I1 <<Sistema>>
+  usecase "Validar fechas del documento" as I2 <<Sistema>>
+  usecase "Calcular vigencia\ndel documento" as I3 <<Sistema>>
+  usecase "Generar alerta de\nvencimiento" as E1
+  usecase "Consultar documentos\npor vehículo" as E2
+}
+AGE -down- UC
+UC .down.> I1 : <<include>>
+UC .down.> I2 : <<include>>
+UC .down.> I3 : <<include>>
+E1 .left.> UC : <<extend>>\n(punto: Resultado de vigencia)
+E2 .left.> UC : <<extend>>\n(punto: Listado de documentos)
+legend bottom
+  |= Campo |= Especificación |
+  | Actor principal | Agente de operaciones |
+  | Lo ejecuta el sistema | Calcular vigencia y marcar el estado; excluir vehículos con documentos vencidos de nuevas reservas (regla futura) |
+  | Precondición | Agente autenticado; vehículo registrado |
+  | Postcondición | Documento asociado al vehículo con su estado de vigencia |
+  | Errores / alternos | 400 fechas incoherentes; 404 vehículo inexistente |
+  | Estado en la entrega | Prototipo navegable; lógica pendiente |
+  |= Relación y caso de uso |= Regla o condición |
+  | <<include>> Validar que el vehículo existe | Obligatorio, siempre se ejecuta. 404 si no existe |
+  | <<include>> Validar fechas del documento | Obligatorio, siempre se ejecuta. El vencimiento no puede ser anterior a la emisión |
+  | <<include>> Calcular vigencia del documento | Obligatorio, siempre se ejecuta. VIGENTE, PRÓXIMO A VENCER (≤30 días) o VENCIDO |
+  | <<extend>> Generar alerta de vencimiento | Opcional. Se ejecuta si el documento vence en 30 días o menos, o ya venció |
+  | <<extend>> Consultar documentos por vehículo | Opcional. Se ejecuta si el agente revisa el historial documental |
+  Colores: azul = caso principal · gris = lo ejecuta el sistema (include) · blanco = opcional (extend) · amarillo = caso de otra historia
+endlegend
+@enduml

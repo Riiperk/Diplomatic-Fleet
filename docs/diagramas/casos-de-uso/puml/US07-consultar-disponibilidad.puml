@@ -1,0 +1,57 @@
+@startuml US07
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam ActorBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam RectangleFontStyle bold
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam UsecaseBorderColor<<Sistema>> #5B7A99
+skinparam UsecaseBackgroundColor<<Relacionado>> #FFF4D6
+skinparam UsecaseBorderColor<<Relacionado>> #B8860B
+skinparam UsecaseBackgroundColor<<Principal>> #DCEBFA
+skinparam UsecaseBorderWidth 1.5
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #123A63
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8860B
+
+title Figura 7. US07 - Consultar disponibilidad\nDiagrama de casos de uso
+actor "Cliente\ninstitucional" as CLI
+actor "Agente de\noperaciones" as AGE
+rectangle "Sistema Diplomatic Fleet\n(Vue.js + API Spring Boot + PostgreSQL)" as SYS {
+  usecase "US07\nConsultar disponibilidad" as UC <<Principal>>
+  usecase "Validar rango de fechas" as I1 <<Sistema>>
+  usecase "Excluir vehículos no disponibles" as I2 <<Sistema>>
+  usecase "Verificar cruces con solicitudes\ny mantenimientos" as I3 <<Sistema>>
+  usecase "Filtrar por categoría\ny pasajeros" as E1
+}
+CLI -down- UC
+AGE -down- UC
+UC .down.> I1 : <<include>>
+UC .down.> I2 : <<include>>
+UC .down.> I3 : <<include>>
+E1 .left.> UC : <<extend>>\n(punto: Formulario de consulta)
+legend bottom
+  |= Campo |= Especificación |
+  | Actor principal | Cliente institucional y Agente de operaciones |
+  | Lo ejecuta el sistema | Consultar la flota, descartar vehículos con cruces y devolver la lista disponible |
+  | Precondición | Usuario autenticado |
+  | Postcondición | Lista de vehículos disponibles para el periodo (sin modificar datos) |
+  | Errores / alternos | 400 fechas inválidas; lista vacía si no hay vehículos que cumplan |
+  | Estado en la entrega | Prototipo navegable; consulta con lógica de periodos pendiente |
+  |= Relación y caso de uso |= Regla o condición |
+  | <<include>> Validar rango de fechas | Obligatorio, siempre se ejecuta. La fecha final debe ser posterior a la inicial |
+  | <<include>> Excluir vehículos no disponibles | Obligatorio, siempre se ejecuta. Reservado, en servicio, en mantenimiento o inactivo |
+  | <<include>> Verificar cruces con solicitudes y mantenimientos | Obligatorio, siempre se ejecuta. Solicitudes vigentes y mantenimientos activos que se solapen |
+  | <<extend>> Filtrar por categoría y pasajeros | Opcional. Se ejecuta si el usuario aplica filtros opcionales |
+  Colores: azul = caso principal · gris = lo ejecuta el sistema (include) · blanco = opcional (extend) · amarillo = caso de otra historia
+endlegend
+@enduml

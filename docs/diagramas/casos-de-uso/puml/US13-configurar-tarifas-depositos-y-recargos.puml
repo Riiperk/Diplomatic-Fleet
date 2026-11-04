@@ -1,0 +1,55 @@
+@startuml US13
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam ActorBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam RectangleFontStyle bold
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam UsecaseBorderColor<<Sistema>> #5B7A99
+skinparam UsecaseBackgroundColor<<Relacionado>> #FFF4D6
+skinparam UsecaseBorderColor<<Relacionado>> #B8860B
+skinparam UsecaseBackgroundColor<<Principal>> #DCEBFA
+skinparam UsecaseBorderWidth 1.5
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #123A63
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8860B
+
+title Figura 13. US13 - Configurar tarifas, depósitos y recargos\nDiagrama de casos de uso
+actor "Administrador\ndel sistema" as ADM
+rectangle "Sistema Diplomatic Fleet\n(Vue.js + API Spring Boot + PostgreSQL)" as SYS {
+  usecase "US13\nConfigurar tarifas, depósitos y recargos" as UC <<Principal>>
+  usecase "Validar permisos de\nadministrador" as I1 <<Sistema>>
+  usecase "Validar valores económicos" as I2 <<Sistema>>
+  usecase "Configurar depósito\nde garantía" as E1
+  usecase "Configurar recargos\ny extras" as E2
+}
+ADM -down- UC
+UC .down.> I1 : <<include>>
+UC .down.> I2 : <<include>>
+E1 .left.> UC : <<extend>>\n(punto: Configuración por categoría)
+E2 .left.> UC : <<extend>>\n(punto: Configuración por categoría)
+legend bottom
+  |= Campo |= Especificación |
+  | Actor principal | Administrador del sistema |
+  | Lo ejecuta el sistema | Validar y guardar parámetros que usará el cálculo de cotizaciones |
+  | Precondición | Administrador autenticado; categorías definidas |
+  | Postcondición | Parámetros vigentes disponibles para US10 y US14 |
+  | Errores / alternos | 400 valores inválidos; 404 categoría inexistente |
+  | Estado en la entrega | Pendiente (backlog) |
+  |= Relación y caso de uso |= Regla o condición |
+  | <<include>> Validar permisos de administrador | Obligatorio, siempre se ejecuta. Solo rol administrador |
+  | <<include>> Validar valores económicos | Obligatorio, siempre se ejecuta. No negativos; impuesto entre 0 y 100 |
+  | <<extend>> Configurar depósito de garantía | Opcional. Se ejecuta si la categoría exige garantía |
+  | <<extend>> Configurar recargos y extras | Opcional. Se ejecuta si existen cargos adicionales |
+  Colores: azul = caso principal · gris = lo ejecuta el sistema (include) · blanco = opcional (extend) · amarillo = caso de otra historia
+endlegend
+@enduml

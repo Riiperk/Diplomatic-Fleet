@@ -1,0 +1,78 @@
+@startuml US00
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam LegendBackgroundColor #FFFFFF
+title Figura 0. Diagrama general de casos de uso - Diplomatic Fleet
+
+actor "Administrador\ndel sistema" as ADM
+actor "Cliente\ninstitucional" as CLI
+actor "Agente de\noperaciones" as AGE
+actor "Conductor\nprofesional" as CON
+actor "Gestor\nde cobros" as COB
+actor "Directivo /\nAuditor" as AUD
+
+rectangle "Sistema Diplomatic Fleet" {
+  usecase "US01 Iniciar sesión" as U01
+  usecase "US02 Gestionar usuarios\ny roles" as U02
+  usecase "US03 Registrar clientes\ninstitucionales" as U03
+  usecase "US04 Gestionar vehículos" as U04
+  usecase "US05 Gestionar documentos\ny vigencias" as U05
+  usecase "US06 Registrar\nmantenimientos" as U06
+  usecase "US07 Consultar\ndisponibilidad" as U07
+  usecase "US08 Crear y consultar\nsolicitudes" as U08
+  usecase "US09 Validar conductor\nautorizado" as U09
+  usecase "US10 Elaborar cotizaciones" as U10
+  usecase "US11 Asignar conductor\nprofesional" as U11
+  usecase "US12 Consultar asignaciones\ndel conductor" as U12
+  usecase "US13 Configurar tarifas,\ndepósitos y recargos" as U13
+  usecase "US14 Generar liquidación\no factura" as U14
+  usecase "US15 Generar reportes" as U15
+  usecase "US16 Modificar o cancelar\nsolicitud" as U16
+  usecase "US17 Consultar historial\nde auditoría" as U17
+}
+ADM -- U01
+CLI -- U01
+AGE -- U01
+CON -- U01
+COB -- U01
+AUD -- U01
+ADM -- U02
+ADM -- U03
+ADM -- U04
+ADM -- U13
+ADM -- U15
+AGE -- U04
+AGE -- U05
+AGE -- U06
+AGE -- U07
+AGE -- U09
+AGE -- U10
+AGE -- U11
+CLI -- U07
+CLI -- U08
+CLI -- U16
+CON -- U12
+COB -- U14
+AUD -- U15
+AUD -- U17
+U08 .> U07 : <<include>>
+U10 .> U13 : <<include>>
+U09 .> U08 : <<extend>>\n(sin conductor)
+U07 .> U16 : <<extend>>\n(cambio de fechas)
+
+legend bottom
+  |= Relación |= Significado |
+  | <<include>> | La base siempre ejecuta el caso incluido (flecha de la base al incluido) |
+  | <<extend>> | Comportamiento opcional bajo una condición (flecha del extensor a la base) |
+  | Asociación | Línea simple entre actor y caso de uso |
+endlegend
+@enduml

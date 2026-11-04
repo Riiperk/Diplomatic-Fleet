@@ -1,0 +1,60 @@
+@startuml US09
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam ActorBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam RectangleFontStyle bold
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam UsecaseBorderColor<<Sistema>> #5B7A99
+skinparam UsecaseBackgroundColor<<Relacionado>> #FFF4D6
+skinparam UsecaseBorderColor<<Relacionado>> #B8860B
+skinparam UsecaseBackgroundColor<<Principal>> #DCEBFA
+skinparam UsecaseBorderWidth 1.5
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #123A63
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8860B
+
+title Figura 9. US09 - Validar conductor autorizado\nDiagrama de casos de uso
+actor "Agente de\noperaciones" as AGE
+actor "Cliente\ninstitucional" as CLI
+rectangle "Sistema Diplomatic Fleet\n(Vue.js + API Spring Boot + PostgreSQL)" as SYS {
+  usecase "US09\nValidar conductor autorizado" as UC <<Principal>>
+  usecase "Verificar datos del conductor\ny documento" as I1 <<Sistema>>
+  usecase "Verificar vigencia\nde la licencia" as I2 <<Sistema>>
+  usecase "Registrar resultado de validación" as I3 <<Sistema>>
+  usecase "Registrar motivo de rechazo" as E1
+  usecase "US08 Crear solicitud" as UC08 <<Relacionado>>
+}
+AGE -down- UC
+UC -left- CLI : aporta datos
+UC .down.> I1 : <<include>>
+UC .down.> I2 : <<include>>
+UC .down.> I3 : <<include>>
+E1 .left.> UC : <<extend>>\n(punto: Resultado de validación)
+UC .left.> UC08 : <<extend>>\n(punto: Modalidad SIN_CONDUCTOR)
+legend bottom
+  |= Campo |= Especificación |
+  | Actor principal | Agente de operaciones |
+  | Lo ejecuta el sistema | Comprobar vigencia de licencia, registrar resultado y asociarlo a la solicitud |
+  | Precondición | Solicitud con modalidad SIN_CONDUCTOR registrada |
+  | Postcondición | Conductor validado y solicitud lista para cotizar, o rechazada con motivo |
+  | Errores / alternos | 400 licencia vencida o datos incompletos; 404 solicitud inexistente; 409 ya existe validación |
+  | Estado en la entrega | Prototipo navegable |
+  |= Relación y caso de uso |= Regla o condición |
+  | <<include>> Verificar datos del conductor y documento | Obligatorio, siempre se ejecuta. Nombre, documento y licencia obligatorios |
+  | <<include>> Verificar vigencia de la licencia | Obligatorio, siempre se ejecuta. La licencia no puede estar vencida |
+  | <<include>> Registrar resultado de validación | Obligatorio, siempre se ejecuta. PENDIENTE, APROBADO o RECHAZADO |
+  | <<extend>> Registrar motivo de rechazo | Opcional. Se ejecuta si el resultado es RECHAZADO |
+  | <<extend>> hacia el caso base: US08 Crear solicitud | Punto de extensión: Modalidad SIN_CONDUCTOR |
+  Colores: azul = caso principal · gris = lo ejecuta el sistema (include) · blanco = opcional (extend) · amarillo = caso de otra historia
+endlegend
+@enduml

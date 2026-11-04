@@ -1,0 +1,60 @@
+@startuml US10
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam ActorBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam RectangleFontStyle bold
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam UsecaseBorderColor<<Sistema>> #5B7A99
+skinparam UsecaseBackgroundColor<<Relacionado>> #FFF4D6
+skinparam UsecaseBorderColor<<Relacionado>> #B8860B
+skinparam UsecaseBackgroundColor<<Principal>> #DCEBFA
+skinparam UsecaseBorderWidth 1.5
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #123A63
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8860B
+
+title Figura 10. US10 - Elaborar cotizaciones\nDiagrama de casos de uso
+actor "Agente de\noperaciones" as AGE
+actor "Cliente\ninstitucional" as CLI
+rectangle "Sistema Diplomatic Fleet\n(Vue.js + API Spring Boot + PostgreSQL)" as SYS {
+  usecase "US10\nElaborar cotizaciones" as UC <<Principal>>
+  usecase "Validar solicitud\nen estado cotizable" as I1 <<Sistema>>
+  usecase "Consultar tarifas\nconfiguradas (US13)" as I2 <<Sistema>>
+  usecase "Calcular subtotal, impuestos\ny total" as I3 <<Sistema>>
+  usecase "Enviar cotización\nal cliente" as E1
+  usecase "Aceptar o rechazar\ncotización" as E2
+}
+AGE -down- UC
+UC -left- CLI : recibe / responde
+UC .down.> I1 : <<include>>
+UC .down.> I2 : <<include>>
+UC .down.> I3 : <<include>>
+E1 .left.> UC : <<extend>>\n(punto: Estado de la cotización)
+E2 .left.> UC : <<extend>>\n(punto: Respuesta del cliente)
+legend bottom
+  |= Campo |= Especificación |
+  | Actor principal | Agente de operaciones |
+  | Lo ejecuta el sistema | Obtener tarifas, calcular valores, guardar la cotización y su detalle |
+  | Precondición | Solicitud validada (y conductor aprobado si aplica) |
+  | Postcondición | Cotización en BORRADOR o ENVIADA asociada a la solicitud |
+  | Errores / alternos | 400 valores negativos o días ≤ 0; 404 solicitud inexistente; 409 cotización vencida |
+  | Estado en la entrega | Prototipo navegable |
+  |= Relación y caso de uso |= Regla o condición |
+  | <<include>> Validar solicitud en estado cotizable | Obligatorio, siempre se ejecuta. No cancelada ni rechazada |
+  | <<include>> Consultar tarifas configuradas (US13) | Obligatorio, siempre se ejecuta. Tarifa por categoría, extras y garantía |
+  | <<include>> Calcular subtotal, impuestos y total | Obligatorio, siempre se ejecuta. total = subtotal + impuestos + garantía |
+  | <<extend>> Enviar cotización al cliente | Opcional. Se ejecuta si el agente aprueba el borrador (BORRADOR → ENVIADA) |
+  | <<extend>> Aceptar o rechazar cotización | Opcional. Se ejecuta si el cliente responde a la propuesta |
+  Colores: azul = caso principal · gris = lo ejecuta el sistema (include) · blanco = opcional (extend) · amarillo = caso de otra historia
+endlegend
+@enduml

@@ -1,0 +1,57 @@
+@startuml US11
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam ActorBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam RectangleFontStyle bold
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam UsecaseBorderColor<<Sistema>> #5B7A99
+skinparam UsecaseBackgroundColor<<Relacionado>> #FFF4D6
+skinparam UsecaseBorderColor<<Relacionado>> #B8860B
+skinparam UsecaseBackgroundColor<<Principal>> #DCEBFA
+skinparam UsecaseBorderWidth 1.5
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #123A63
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8860B
+
+title Figura 11. US11 - Asignar conductor profesional\nDiagrama de casos de uso
+actor "Agente de\noperaciones" as AGE
+actor "Conductor\nprofesional" as CON
+rectangle "Sistema Diplomatic Fleet\n(Vue.js + API Spring Boot + PostgreSQL)" as SYS {
+  usecase "US11\nAsignar conductor profesional" as UC <<Principal>>
+  usecase "Validar solicitud\nCON_CONDUCTOR" as I1 <<Sistema>>
+  usecase "Verificar disponibilidad\ndel conductor" as I2 <<Sistema>>
+  usecase "Reasignar conductor" as E1
+  usecase "Notificar al conductor" as E2
+}
+AGE -down- UC
+UC -left- CON : es asignado
+UC .down.> I1 : <<include>>
+UC .down.> I2 : <<include>>
+E1 .left.> UC : <<extend>>\n(punto: Asignación vigente)
+E2 .left.> UC : <<extend>>\n(punto: Confirmación de asignación)
+legend bottom
+  |= Campo |= Especificación |
+  | Actor principal | Agente de operaciones |
+  | Lo ejecuta el sistema | Comprobar disponibilidad y registrar la asignación |
+  | Precondición | Solicitud aprobada con modalidad CON_CONDUCTOR |
+  | Postcondición | Conductor asignado a la solicitud |
+  | Errores / alternos | 409 conductor no disponible; 404 solicitud o conductor inexistente |
+  | Estado en la entrega | Pendiente (backlog) |
+  |= Relación y caso de uso |= Regla o condición |
+  | <<include>> Validar solicitud CON_CONDUCTOR | Obligatorio, siempre se ejecuta. Solo aplica a modalidad con conductor |
+  | <<include>> Verificar disponibilidad del conductor | Obligatorio, siempre se ejecuta. Sin servicios cruzados en el periodo |
+  | <<extend>> Reasignar conductor | Opcional. Se ejecuta si el conductor deja de estar disponible |
+  | <<extend>> Notificar al conductor | Opcional. Se ejecuta si se confirma la asignación |
+  Colores: azul = caso principal · gris = lo ejecuta el sistema (include) · blanco = opcional (extend) · amarillo = caso de otra historia
+endlegend
+@enduml

@@ -1,0 +1,58 @@
+@startuml US14
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam ActorBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam RectangleFontStyle bold
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam UsecaseBorderColor<<Sistema>> #5B7A99
+skinparam UsecaseBackgroundColor<<Relacionado>> #FFF4D6
+skinparam UsecaseBorderColor<<Relacionado>> #B8860B
+skinparam UsecaseBackgroundColor<<Principal>> #DCEBFA
+skinparam UsecaseBorderWidth 1.5
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #123A63
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8860B
+
+title Figura 14. US14 - Generar liquidación o factura\nDiagrama de casos de uso
+actor "Gestor\nde cobros" as COB
+rectangle "Sistema Diplomatic Fleet\n(Vue.js + API Spring Boot + PostgreSQL)" as SYS {
+  usecase "US14\nGenerar liquidación o factura" as UC <<Principal>>
+  usecase "Consultar cotización aceptada\ny servicio finalizado" as I1 <<Sistema>>
+  usecase "Calcular liquidación final" as I2 <<Sistema>>
+  usecase "Generar consecutivo\nde liquidación" as I3 <<Sistema>>
+  usecase "Registrar pago o cobro" as E1
+  usecase "Exportar liquidación a PDF" as E2
+}
+COB -down- UC
+UC .down.> I1 : <<include>>
+UC .down.> I2 : <<include>>
+UC .down.> I3 : <<include>>
+E1 .left.> UC : <<extend>>\n(punto: Liquidación generada)
+E2 .left.> UC : <<extend>>\n(punto: Liquidación generada)
+legend bottom
+  |= Campo |= Especificación |
+  | Actor principal | Gestor de cobros |
+  | Lo ejecuta el sistema | Calcular valores finales y persistir la liquidación |
+  | Precondición | Servicio finalizado con cotización aceptada |
+  | Postcondición | Liquidación o factura generada y consultable |
+  | Errores / alternos | 409 servicio no finalizado o ya liquidado; 404 solicitud inexistente |
+  | Estado en la entrega | Pendiente (backlog) |
+  |= Relación y caso de uso |= Regla o condición |
+  | <<include>> Consultar cotización aceptada y servicio finalizado | Obligatorio, siempre se ejecuta. Solo servicios finalizados |
+  | <<include>> Calcular liquidación final | Obligatorio, siempre se ejecuta. Tarifa, recargos, impuestos y garantía |
+  | <<include>> Generar consecutivo de liquidación | Obligatorio, siempre se ejecuta. Código único |
+  | <<extend>> Registrar pago o cobro | Opcional. Se ejecuta si se recibe el pago del cliente |
+  | <<extend>> Exportar liquidación a PDF | Opcional. Se ejecuta si el gestor solicita el documento |
+  Colores: azul = caso principal · gris = lo ejecuta el sistema (include) · blanco = opcional (extend) · amarillo = caso de otra historia
+endlegend
+@enduml

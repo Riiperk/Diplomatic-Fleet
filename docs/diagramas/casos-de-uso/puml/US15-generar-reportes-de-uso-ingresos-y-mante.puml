@@ -1,0 +1,63 @@
+@startuml US15
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam ActorBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam RectangleFontStyle bold
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam UsecaseBorderColor<<Sistema>> #5B7A99
+skinparam UsecaseBackgroundColor<<Relacionado>> #FFF4D6
+skinparam UsecaseBorderColor<<Relacionado>> #B8860B
+skinparam UsecaseBackgroundColor<<Principal>> #DCEBFA
+skinparam UsecaseBorderWidth 1.5
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #123A63
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8860B
+
+title Figura 15. US15 - Generar reportes de uso, ingresos y mantenimientos\nDiagrama de casos de uso
+actor "Directivo /\nAuditor" as AUD
+actor "Administrador\ndel sistema" as ADM
+rectangle "Sistema Diplomatic Fleet\n(Vue.js + API Spring Boot + PostgreSQL)" as SYS {
+  usecase "US15\nGenerar reportes de uso, ingresos y mantenimientos" as UC <<Principal>>
+  usecase "Validar permisos y\nrango de fechas" as I1 <<Sistema>>
+  usecase "Consolidar datos del periodo" as I2 <<Sistema>>
+  usecase "Reporte de uso\nde vehículos" as E1
+  usecase "Reporte de ingresos" as E2
+  usecase "Reporte de mantenimientos" as E3
+  usecase "Exportar reporte" as E4
+}
+AUD -down- UC
+ADM -down- UC
+UC .down.> I1 : <<include>>
+UC .down.> I2 : <<include>>
+E1 .left.> UC : <<extend>>\n(punto: Selección de reporte)
+E2 .left.> UC : <<extend>>\n(punto: Selección de reporte)
+E3 .left.> UC : <<extend>>\n(punto: Selección de reporte)
+E4 .left.> UC : <<extend>>\n(punto: Reporte generado)
+legend bottom
+  |= Campo |= Especificación |
+  | Actor principal | Directivo / Auditor (también el Administrador) |
+  | Lo ejecuta el sistema | Agregar información y construir el reporte |
+  | Precondición | Usuario autorizado; existen datos en el periodo |
+  | Postcondición | Reporte visualizado o exportado (sin modificar datos) |
+  | Errores / alternos | 400 rango inválido; reporte vacío si no hay datos |
+  | Estado en la entrega | Pendiente (backlog) |
+  |= Relación y caso de uso |= Regla o condición |
+  | <<include>> Validar permisos y rango de fechas | Obligatorio, siempre se ejecuta. Roles autorizados; fecha inicial ≤ final |
+  | <<include>> Consolidar datos del periodo | Obligatorio, siempre se ejecuta. Consultas agregadas en PostgreSQL |
+  | <<extend>> Reporte de uso de vehículos | Opcional. Se ejecuta si el usuario elige este tipo |
+  | <<extend>> Reporte de ingresos | Opcional. Se ejecuta si el usuario elige este tipo |
+  | <<extend>> Reporte de mantenimientos | Opcional. Se ejecuta si el usuario elige este tipo |
+  | <<extend>> Exportar reporte | Opcional. Se ejecuta si el usuario solicita descarga |
+  Colores: azul = caso principal · gris = lo ejecuta el sistema (include) · blanco = opcional (extend) · amarillo = caso de otra historia
+endlegend
+@enduml
