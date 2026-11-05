@@ -1,0 +1,58 @@
+@startuml US06
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam ActorBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam RectangleFontStyle bold
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam UsecaseBorderColor<<Sistema>> #5B7A99
+skinparam UsecaseBackgroundColor<<Relacionado>> #FFF4D6
+skinparam UsecaseBorderColor<<Relacionado>> #B8860B
+skinparam UsecaseBackgroundColor<<Principal>> #DCEBFA
+skinparam UsecaseBorderWidth 1.5
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #123A63
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8860B
+
+title Figura 6. US06 - Registrar mantenimientos\nDiagrama de casos de uso
+actor "Agente de\noperaciones" as AGE
+rectangle "Sistema Diplomatic Fleet\n(Vue.js + API Spring Boot + PostgreSQL)" as SYS {
+  usecase "US06\nRegistrar mantenimientos" as UC <<Principal>>
+  usecase "Validar que el vehículo\nexiste" as I1 <<Sistema>>
+  usecase "Validar fechas y costo" as I2 <<Sistema>>
+  usecase "Validar transición\nde estado" as I3 <<Sistema>>
+  usecase "Poner vehículo en\nEN_MANTENIMIENTO" as E1
+  usecase "Liberar vehículo\n(DISPONIBLE)" as E2
+}
+AGE -down- UC
+UC .down.> I1 : <<include>>
+UC .down.> I2 : <<include>>
+UC .down.> I3 : <<include>>
+E1 .left.> UC : <<extend>>\n(punto: Inicio del mantenimiento)
+E2 .left.> UC : <<extend>>\n(punto: Cierre del mantenimiento)
+legend bottom
+  |= Campo |= Especificación |
+  | Actor principal | Agente de operaciones |
+  | Lo ejecuta el sistema | Validar transiciones y actualizar automáticamente el estado del vehículo |
+  | Precondición | Agente autenticado; vehículo activo |
+  | Postcondición | Mantenimiento registrado y estado del vehículo coherente |
+  | Errores / alternos | 404 recurso inexistente; 409 transición inválida; 400 datos inválidos |
+  | Estado en la entrega | Prototipo navegable; lógica pendiente |
+  |= Relación y caso de uso |= Regla o condición |
+  | <<include>> Validar que el vehículo existe | Obligatorio, siempre se ejecuta. 404 si no existe |
+  | <<include>> Validar fechas y costo | Obligatorio, siempre se ejecuta. Fecha fin ≥ inicio; costo ≥ 0 |
+  | <<include>> Validar transición de estado | Obligatorio, siempre se ejecuta. PROGRAMADO→EN_PROCESO→FINALIZADO; CANCELADO desde PROGRAMADO o EN_PROCESO |
+  | <<extend>> Poner vehículo en EN_MANTENIMIENTO | Opcional. Se ejecuta si el mantenimiento pasa a EN_PROCESO |
+  | <<extend>> Liberar vehículo (DISPONIBLE) | Opcional. Se ejecuta si el mantenimiento se FINALIZA o CANCELA |
+  Colores: azul = caso principal · gris = lo ejecuta el sistema (include) · blanco = opcional (extend) · amarillo = caso de otra historia
+endlegend
+@enduml

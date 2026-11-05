@@ -1,0 +1,60 @@
+@startuml US04
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam ActorBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam RectangleFontStyle bold
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam UsecaseBorderColor<<Sistema>> #5B7A99
+skinparam UsecaseBackgroundColor<<Relacionado>> #FFF4D6
+skinparam UsecaseBorderColor<<Relacionado>> #B8860B
+skinparam UsecaseBackgroundColor<<Principal>> #DCEBFA
+skinparam UsecaseBorderWidth 1.5
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #123A63
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8860B
+
+title Figura 4. US04 - Gestionar vehículos\nDiagrama de casos de uso
+actor "Administrador\ndel sistema" as ADM
+actor "Agente de\noperaciones" as AGE
+rectangle "Sistema Diplomatic Fleet\n(Vue.js + API Spring Boot + PostgreSQL)" as SYS {
+  usecase "US04\nGestionar vehículos" as UC <<Principal>>
+  usecase "Normalizar placa\ny textos" as I1 <<Sistema>>
+  usecase "Validar placa única\ny categoría activa" as I2 <<Sistema>>
+  usecase "Persistir vehículo\nen PostgreSQL" as I3 <<Sistema>>
+  usecase "Consultar y filtrar vehículos" as E1
+  usecase "Actualizar información\ndel vehículo" as E2
+}
+ADM -down- UC
+AGE -down- UC
+UC .down.> I1 : <<include>>
+UC .down.> I2 : <<include>>
+UC .down.> I3 : <<include>>
+E1 .left.> UC : <<extend>>\n(punto: Listado de flota)
+E2 .left.> UC : <<extend>>\n(punto: Edición de vehículo)
+legend bottom
+  |= Campo |= Especificación |
+  | Actor principal | Administrador del sistema y Agente de operaciones |
+  | Lo ejecuta el sistema | Normalizar, validar unicidad y capacidad, guardar y calcular indicadores de flota |
+  | Precondición | Usuario autenticado; la categoría existe y está activa |
+  | Postcondición | Vehículo registrado con estado DISPONIBLE |
+  | Errores / alternos | 400 capacidad o año inválidos; 404 vehículo/categoría inexistente; 409 placa duplicada |
+  | Estado en la entrega | Funcional de extremo a extremo |
+  |= Relación y caso de uso |= Regla o condición |
+  | <<include>> Normalizar placa y textos | Obligatorio, siempre se ejecuta. Placa en mayúsculas, sin espacios sobrantes |
+  | <<include>> Validar placa única y categoría activa | Obligatorio, siempre se ejecuta. 409 si la placa existe |
+  | <<include>> Persistir vehículo en PostgreSQL | Obligatorio, siempre se ejecuta. Estado inicial DISPONIBLE |
+  | <<extend>> Consultar y filtrar vehículos | Opcional. Se ejecuta si se busca por placa, marca, modelo, categoría o estado |
+  | <<extend>> Actualizar información del vehículo | Opcional. Se ejecuta si se edita un vehículo existente |
+  Colores: azul = caso principal · gris = lo ejecuta el sistema (include) · blanco = opcional (extend) · amarillo = caso de otra historia
+endlegend
+@enduml

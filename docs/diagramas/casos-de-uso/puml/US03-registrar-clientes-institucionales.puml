@@ -1,0 +1,58 @@
+@startuml US03
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam ActorBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam RectangleFontStyle bold
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam UsecaseBorderColor<<Sistema>> #5B7A99
+skinparam UsecaseBackgroundColor<<Relacionado>> #FFF4D6
+skinparam UsecaseBorderColor<<Relacionado>> #B8860B
+skinparam UsecaseBackgroundColor<<Principal>> #DCEBFA
+skinparam UsecaseBorderWidth 1.5
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #123A63
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8860B
+
+title Figura 3. US03 - Registrar clientes institucionales\nDiagrama de casos de uso
+actor "Administrador\ndel sistema" as ADM
+rectangle "Sistema Diplomatic Fleet\n(Vue.js + API Spring Boot + PostgreSQL)" as SYS {
+  usecase "US03\nRegistrar clientes institucionales" as UC <<Principal>>
+  usecase "Validar permisos de\nadministrador" as I1 <<Sistema>>
+  usecase "Validar datos del cliente" as I2 <<Sistema>>
+  usecase "Persistir cliente\nen PostgreSQL" as I3 <<Sistema>>
+  usecase "Buscar y consultar clientes" as E1
+  usecase "Activar / inactivar cliente" as E2
+}
+ADM -down- UC
+UC .down.> I1 : <<include>>
+UC .down.> I2 : <<include>>
+UC .down.> I3 : <<include>>
+E1 .left.> UC : <<extend>>\n(punto: Listado de clientes)
+E2 .left.> UC : <<extend>>\n(punto: Edición de cliente)
+legend bottom
+  |= Campo |= Especificación |
+  | Actor principal | Administrador del sistema |
+  | Lo ejecuta el sistema | Validar unicidad y formato, normalizar correo, guardar y devolver 201 Created |
+  | Precondición | Administrador autenticado |
+  | Postcondición | Cliente registrado y disponible para crear solicitudes |
+  | Errores / alternos | 400 campos obligatorios; 404 cliente inexistente; 409 nombre o correo duplicado |
+  | Estado en la entrega | Funcional de extremo a extremo (Vue + Spring + PostgreSQL) |
+  |= Relación y caso de uso |= Regla o condición |
+  | <<include>> Validar permisos de administrador | Obligatorio, siempre se ejecuta. Solo rol administrador |
+  | <<include>> Validar datos del cliente | Obligatorio, siempre se ejecuta. Nombre único, correo válido, tipo de entidad permitido |
+  | <<include>> Persistir cliente en PostgreSQL | Obligatorio, siempre se ejecuta. Tabla clientes_institucionales |
+  | <<extend>> Buscar y consultar clientes | Opcional. Se ejecuta si el usuario filtra o abre un cliente |
+  | <<extend>> Activar / inactivar cliente | Opcional. Se ejecuta si se cambia el estado (PUT /api/clientes/{id}) |
+  Colores: azul = caso principal · gris = lo ejecuta el sistema (include) · blanco = opcional (extend) · amarillo = caso de otra historia
+endlegend
+@enduml

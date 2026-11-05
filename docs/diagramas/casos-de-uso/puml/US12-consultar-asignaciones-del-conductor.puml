@@ -1,0 +1,55 @@
+@startuml US12
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #123A63
+skinparam ActorBorderColor #123A63
+skinparam ActorBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #123A63
+skinparam RectangleBackgroundColor #F7FAFC
+skinparam RectangleFontStyle bold
+skinparam UsecaseBorderColor #123A63
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBackgroundColor<<Sistema>> #E8EEF5
+skinparam UsecaseBorderColor<<Sistema>> #5B7A99
+skinparam UsecaseBackgroundColor<<Relacionado>> #FFF4D6
+skinparam UsecaseBorderColor<<Relacionado>> #B8860B
+skinparam UsecaseBackgroundColor<<Principal>> #DCEBFA
+skinparam UsecaseBorderWidth 1.5
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #123A63
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8860B
+
+title Figura 12. US12 - Consultar asignaciones del conductor\nDiagrama de casos de uso
+actor "Conductor\nprofesional" as CON
+rectangle "Sistema Diplomatic Fleet\n(Vue.js + API Spring Boot + PostgreSQL)" as SYS {
+  usecase "US12\nConsultar asignaciones del conductor" as UC <<Principal>>
+  usecase "Filtrar por conductor\nautenticado" as I1 <<Sistema>>
+  usecase "Consultar asignaciones\nvigentes y futuras" as I2 <<Sistema>>
+  usecase "Ver detalle del servicio" as E1
+  usecase "Filtrar por fecha o estado" as E2
+}
+CON -down- UC
+UC .down.> I1 : <<include>>
+UC .down.> I2 : <<include>>
+E1 .left.> UC : <<extend>>\n(punto: Listado de asignaciones)
+E2 .left.> UC : <<extend>>\n(punto: Listado de asignaciones)
+legend bottom
+  |= Campo |= Especificación |
+  | Actor principal | Conductor profesional |
+  | Lo ejecuta el sistema | Autorizar por rol y devolver únicamente las asignaciones del usuario |
+  | Precondición | Conductor autenticado con asignaciones registradas |
+  | Postcondición | Lista de asignaciones mostrada (consulta, sin cambios) |
+  | Errores / alternos | 403 rol no autorizado; lista vacía si no hay asignaciones |
+  | Estado en la entrega | Pendiente (backlog) |
+  |= Relación y caso de uso |= Regla o condición |
+  | <<include>> Filtrar por conductor autenticado | Obligatorio, siempre se ejecuta. Solo ve sus propias asignaciones |
+  | <<include>> Consultar asignaciones vigentes y futuras | Obligatorio, siempre se ejecuta. Ordenadas por fecha de inicio |
+  | <<extend>> Ver detalle del servicio | Opcional. Se ejecuta si el conductor abre una asignación |
+  | <<extend>> Filtrar por fecha o estado | Opcional. Se ejecuta si el conductor aplica filtros |
+  Colores: azul = caso principal · gris = lo ejecuta el sistema (include) · blanco = opcional (extend) · amarillo = caso de otra historia
+endlegend
+@enduml
