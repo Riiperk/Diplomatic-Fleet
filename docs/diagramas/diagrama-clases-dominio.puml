@@ -1,0 +1,804 @@
+@startuml DiplomaticFleet_DiagramaClases_Normalizado
+
+title Diagrama de Clases Normalizado - Diplomatic Fleet\nAlquiler de vehículos para clientes diplomáticos e institucionales
+
+' =========================================================
+' CONFIGURACIÓN VISUAL PROFESIONAL
+' =========================================================
+
+' Orientación general: núcleo superior y módulos debajo
+top to bottom direction
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam titleFontSize 18
+skinparam titleFontStyle bold
+skinparam classFontSize 13
+skinparam classAttributeFontSize 10
+skinparam classStereotypeFontSize 9
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam linetype ortho
+
+' Espaciado: evita cajas amontonadas y facilita seguir relaciones
+skinparam nodesep 55
+skinparam ranksep 75
+skinparam dpi 220
+
+skinparam class {
+    BackgroundColor white
+    BorderColor black
+    ArrowColor black
+    FontColor black
+    AttributeFontColor black
+    StereotypeFontColor black
+}
+
+skinparam package {
+    BackgroundColor white
+    BorderColor black
+    FontColor black
+}
+
+skinparam note {
+    BackgroundColor white
+    BorderColor black
+    FontColor black
+}
+
+hide circle
+hide methods
+
+' =========================================================
+' NÚCLEO MOSTRADO POR EL PROFESOR
+' =========================================================
+
+package "Personas, perfiles y registro" {
+
+    class "TipoDocumento" as TipoDocumento <<catalogo>> {
+        +idTipoDocumento: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        longitudMinima: Integer
+        longitudMaxima: Integer
+        requiereFechaExpedicion: Boolean
+        aplicaPersonaNatural: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "Persona" as Persona <<entidad>> {
+        +idPersona: Long {PK}
+        --
+        idTipoDocumento: Long {FK}
+        primerNombre: String
+        segundoNombre: String {opcional}
+        primerApellido: String
+        segundoApellido: String {opcional}
+        numeroDocumento: String
+        fechaExpedicionDocumento: Date {opcional}
+        fechaNacimiento: Date
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "DatosAdicionalesPersona" as DatosAdicionales <<entidad>> {
+        +idDatosAdicionales: Long {PK}
+        --
+        idPersona: Long {FK, UK}
+        indicativoTelefonico: String
+        numeroTelefono: String
+        extensionTelefonica: String {opcional}
+        correoElectronico: String {UK}
+        tipoVia: String
+        numeroVia: String
+        letraVia: String {opcional}
+        numeroPredio: String
+        numeroComplemento: String
+        complementoDireccion: String {opcional}
+        barrio: String {opcional}
+        municipio: String
+        departamento: String
+        codigoPostal: String {opcional}
+        ocupacion: String {opcional}
+        nacionalidad: String {opcional}
+        idiomaPreferido: String
+        medioContactoPreferido: String
+        recibeNotificaciones: Boolean
+        aceptaTratamientoDatos: Boolean
+        fechaAceptacionDatos: DateTime {opcional}
+        observaciones: String {opcional}
+        edad: Integer {derivado}
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "Perfil" as Perfil <<catalogo>> {
+        +idPerfil: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        nivelAcceso: Integer
+        esAdministrativo: Boolean
+        permiteGestionUsuarios: Boolean
+        permiteGestionFlota: Boolean
+        permiteGestionServicios: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "Usuario" as Usuario <<entidad>> {
+        +idUsuario: Long {PK}
+        --
+        idPersona: Long {FK, UK}
+        idPerfil: Long {FK}
+        nombreUsuario: String {UK}
+        contrasenaHash: String
+        ultimoAcceso: DateTime {opcional}
+        intentosFallidos: Integer
+        bloqueadoHasta: DateTime {opcional}
+        requiereCambioContrasena: Boolean
+        aceptoTerminos: Boolean
+        fechaAceptacionTerminos: DateTime {opcional}
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "FormularioRegistro" as FormularioRegistro <<boundary>> {
+        primerNombre: String
+        segundoNombre: String {opcional}
+        primerApellido: String
+        segundoApellido: String {opcional}
+        tipoDocumentoSeleccionado: Long
+        numeroDocumento: String
+        fechaExpedicionDocumento: Date {opcional}
+        fechaNacimiento: Date
+        indicativoTelefonico: String
+        numeroTelefono: String
+        correoElectronico: String
+        tipoVia: String
+        numeroVia: String
+        numeroPredio: String
+        numeroComplemento: String
+        municipio: String
+        departamento: String
+        perfilSeleccionado: Long
+        nombreUsuario: String
+        contrasena: String
+        confirmacionContrasena: String
+        terminosAceptados: Boolean
+    }
+
+    class "ServicioRegistro" as ServicioRegistro <<control>> {
+        idOperacion: UUID
+        fechaEjecucion: DateTime
+        origenSolicitud: String
+        registroExitoso: Boolean
+        mensajeResultado: String
+        idPersonaCreada: Long {opcional}
+        idUsuarioCreado: Long {opcional}
+        duracionMilisegundos: Long
+        requiereAuditoria: Boolean
+        creadoEn: DateTime
+    }
+}
+
+' =========================================================
+' PERMISOS Y SESIONES
+' =========================================================
+
+package "Seguridad y autorización" {
+
+    class "Permiso" as Permiso <<catalogo>> {
+        +idPermiso: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        modulo: String
+        recurso: String
+        accion: String
+        metodoHttp: String
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "PerfilPermiso" as PerfilPermiso <<asociativa>> {
+        +idPerfilPermiso: Long {PK}
+        --
+        idPerfil: Long {FK}
+        idPermiso: Long {FK}
+        fechaAsignacion: DateTime
+        asignadoPor: String
+        fechaRevocacion: DateTime {opcional}
+        revocadoPor: String {opcional}
+        motivoRevocacion: String {opcional}
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "SesionUsuario" as SesionUsuario <<entidad>> {
+        +idSesion: UUID {PK}
+        --
+        idUsuario: Long {FK}
+        tokenHash: String {UK}
+        direccionIp: String
+        agenteUsuario: String
+        fechaInicio: DateTime
+        fechaExpiracion: DateTime
+        fechaUltimaActividad: DateTime
+        fechaCierre: DateTime {opcional}
+        motivoCierre: String {opcional}
+        activa: Boolean
+    }
+}
+
+' =========================================================
+' CLIENTES INSTITUCIONALES
+' =========================================================
+
+package "Clientes institucionales" {
+
+    class "TipoEntidad" as TipoEntidad <<catalogo>> {
+        +idTipoEntidad: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        requiereIdentificacionFiscal: Boolean
+        permiteSolicitudes: Boolean
+        requiereContactoAutorizado: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "ClienteInstitucional" as ClienteInstitucional <<entidad>> {
+        +idClienteInstitucional: Long {PK}
+        --
+        idTipoEntidad: Long {FK}
+        nombreEntidad: String {UK}
+        numeroIdentificacionFiscal: String {opcional, UK}
+        correoInstitucional: String
+        telefonoInstitucional: String {opcional}
+        sitioWeb: String {opcional}
+        municipio: String
+        departamento: String
+        direccionInstitucional: String
+        fechaRegistro: DateTime
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "ContactoInstitucional" as ContactoInstitucional <<asociativa>> {
+        +idContactoInstitucional: Long {PK}
+        --
+        idClienteInstitucional: Long {FK}
+        idPersona: Long {FK}
+        cargoInstitucional: String
+        areaInstitucional: String {opcional}
+        esContactoPrincipal: Boolean
+        puedeAutorizarServicios: Boolean
+        fechaInicio: Date
+        fechaFin: Date {opcional}
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+}
+
+' =========================================================
+' VEHÍCULOS Y CONDUCTORES
+' =========================================================
+
+package "Flota vehicular" {
+
+    class "CategoriaVehiculo" as CategoriaVehiculo <<catalogo>> {
+        +idCategoriaVehiculo: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        capacidadMinimaPasajeros: Integer
+        capacidadMaximaPasajeros: Integer
+        capacidadMinimaEquipaje: Integer
+        permiteBlindaje: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "EstadoVehiculo" as EstadoVehiculo <<catalogo>> {
+        +idEstadoVehiculo: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        permiteReserva: Boolean
+        exigeMantenimiento: Boolean
+        esEstadoOperativo: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "TipoCombustible" as TipoCombustible <<catalogo>> {
+        +idTipoCombustible: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        esElectrico: Boolean
+        esHibrido: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "Vehiculo" as Vehiculo <<entidad>> {
+        +idVehiculo: Long {PK}
+        --
+        idCategoriaVehiculo: Long {FK}
+        idEstadoVehiculo: Long {FK}
+        idTipoCombustible: Long {FK}
+        placa: String {UK}
+        marca: String
+        modelo: String
+        anio: Integer
+        color: String
+        capacidadPasajeros: Integer
+        capacidadEquipaje: Integer
+        numeroChasis: String {opcional, UK}
+        numeroMotor: String {opcional, UK}
+        kilometrajeActual: Decimal
+        blindado: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "CategoriaLicencia" as CategoriaLicencia <<catalogo>> {
+        +idCategoriaLicencia: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        permiteServicioPublico: Boolean
+        permiteVehiculoBlindado: Boolean
+        vigenciaAnios: Integer
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "Conductor" as ConductorEntidad <<entidad>> {
+        +idConductor: Long {PK}
+        --
+        idPersona: Long {FK, UK}
+        idCategoriaLicencia: Long {FK}
+        codigoInterno: String {UK}
+        numeroLicencia: String {UK}
+        fechaExpedicionLicencia: Date
+        fechaVencimientoLicencia: Date
+        disponible: Boolean
+        autorizadoVehiculoBlindado: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+}
+
+' =========================================================
+' DOCUMENTOS Y MANTENIMIENTO
+' =========================================================
+
+package "Documentos y mantenimiento" {
+
+    class "TipoDocumentoVehiculo" as TipoDocumentoVehiculo <<catalogo>> {
+        +idTipoDocumentoVehiculo: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        requiereVencimiento: Boolean
+        diasAlertaVencimiento: Integer
+        obligatorioParaOperacion: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "DocumentoVehiculo" as DocumentoVehiculo <<entidad>> {
+        +idDocumentoVehiculo: Long {PK}
+        --
+        idVehiculo: Long {FK}
+        idTipoDocumentoVehiculo: Long {FK}
+        numeroDocumento: String
+        fechaExpedicion: Date
+        fechaVencimiento: Date {opcional}
+        entidadEmisora: String
+        rutaArchivo: String {opcional}
+        vigente: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "TipoMantenimiento" as TipoMantenimiento <<catalogo>> {
+        +idTipoMantenimiento: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        esPreventivo: Boolean
+        requiereInmovilizacion: Boolean
+        periodicidadKilometros: Decimal {opcional}
+        periodicidadMeses: Integer {opcional}
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "MantenimientoVehiculo" as Mantenimiento <<entidad>> {
+        +idMantenimiento: Long {PK}
+        --
+        idVehiculo: Long {FK}
+        idTipoMantenimiento: Long {FK}
+        codigoMantenimiento: String {UK}
+        fechaProgramada: DateTime
+        fechaInicio: DateTime {opcional}
+        fechaFinalizacion: DateTime {opcional}
+        kilometrajeIngreso: Decimal
+        kilometrajeSalida: Decimal {opcional}
+        proveedor: String {opcional}
+        descripcionTrabajo: String
+        valorTotal: Decimal
+        finalizado: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+}
+
+' =========================================================
+' ALQUILER Y SERVICIOS
+' =========================================================
+
+package "Alquiler y servicios" {
+
+    class "EstadoSolicitud" as EstadoSolicitud <<catalogo>> {
+        +idEstadoSolicitud: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        permiteModificacion: Boolean
+        permiteCancelacion: Boolean
+        esEstadoFinal: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "SolicitudServicio" as SolicitudServicio <<entidad>> {
+        +idSolicitud: Long {PK}
+        --
+        idClienteInstitucional: Long {FK}
+        idEstadoSolicitud: Long {FK}
+        codigoSolicitud: String {UK}
+        fechaSolicitud: DateTime
+        fechaInicio: DateTime
+        fechaFin: DateTime
+        cantidadPasajeros: Integer
+        cantidadEquipaje: Integer
+        municipioOrigen: String
+        direccionOrigen: String
+        municipioDestino: String
+        direccionDestino: String
+        requiereVehiculoBlindado: Boolean
+        observaciones: String {opcional}
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "EstadoReserva" as EstadoReserva <<catalogo>> {
+        +idEstadoReserva: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        permiteInicio: Boolean
+        permiteCancelacion: Boolean
+        esEstadoFinal: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "Reserva" as Reserva <<entidad>> {
+        +idReserva: Long {PK}
+        --
+        idSolicitud: Long {FK, UK}
+        idVehiculo: Long {FK}
+        idEstadoReserva: Long {FK}
+        codigoReserva: String {UK}
+        fechaReserva: DateTime
+        fechaInicio: DateTime
+        fechaFin: DateTime
+        valorEstimado: Decimal
+        motivoCancelacion: String {opcional}
+        observaciones: String {opcional}
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "AsignacionConductor" as AsignacionConductor <<asociativa>> {
+        +idAsignacion: Long {PK}
+        --
+        idReserva: Long {FK}
+        idConductor: Long {FK}
+        fechaAsignacion: DateTime
+        fechaInicio: DateTime
+        fechaFin: DateTime {opcional}
+        asignadoPor: String
+        observaciones: String {opcional}
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+}
+
+' =========================================================
+' COTIZACIONES Y PAGOS
+' =========================================================
+
+package "Cotizaciones y pagos" {
+
+    class "EstadoCotizacion" as EstadoCotizacion <<catalogo>> {
+        +idEstadoCotizacion: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        permiteModificacion: Boolean
+        permiteEnvio: Boolean
+        esEstadoFinal: Boolean
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "Cotizacion" as Cotizacion <<entidad>> {
+        +idCotizacion: Long {PK}
+        --
+        idSolicitud: Long {FK}
+        idEstadoCotizacion: Long {FK}
+        codigoCotizacion: String {UK}
+        fechaEmision: DateTime
+        fechaVencimiento: Date
+        subtotal: Decimal
+        valorImpuestos: Decimal
+        valorDescuentos: Decimal
+        valorTotal: Decimal
+        observaciones: String {opcional}
+        creadoPor: String
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "DetalleCotizacion" as DetalleCotizacion <<entidad>> {
+        +idDetalleCotizacion: Long {PK}
+        --
+        idCotizacion: Long {FK}
+        concepto: String
+        descripcionDetalle: String
+        cantidad: Decimal
+        valorUnitario: Decimal
+        porcentajeDescuento: Decimal
+        porcentajeImpuesto: Decimal
+        valorSubtotal: Decimal
+        valorDescuento: Decimal
+        valorImpuesto: Decimal
+        valorTotal: Decimal
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "MetodoPago" as MetodoPago <<catalogo>> {
+        +idMetodoPago: Long {PK}
+        --
+        codigo: String {UK}
+        nombre: String
+        descripcion: String
+        requiereReferencia: Boolean
+        permitePagoParcial: Boolean
+        diasConfirmacion: Integer
+        activo: Boolean
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+
+    class "Pago" as Pago <<entidad>> {
+        +idPago: Long {PK}
+        --
+        idReserva: Long {FK}
+        idMetodoPago: Long {FK}
+        codigoPago: String {UK}
+        fechaPago: DateTime
+        monto: Decimal
+        referenciaTransaccion: String {opcional}
+        entidadFinanciera: String {opcional}
+        confirmado: Boolean
+        fechaConfirmacion: DateTime {opcional}
+        observaciones: String {opcional}
+        creadoEn: DateTime
+        actualizadoEn: DateTime
+    }
+}
+
+' =========================================================
+' RELACIONES DEL NÚCLEO
+' =========================================================
+
+TipoDocumento "1" <-- "0..*" Persona : clasifica
+
+Persona "1" *-- "1" DatosAdicionales : posee
+Persona "1" -- "0..1" Usuario : dispone de
+
+Perfil "1" <-- "0..*" Usuario : asigna cargo
+
+Perfil "1" -- "0..*" PerfilPermiso : recibe
+Permiso "1" -- "0..*" PerfilPermiso : se asigna
+
+Usuario "1" *-- "0..*" SesionUsuario : inicia
+
+FormularioRegistro ..> TipoDocumento : consulta
+FormularioRegistro ..> Perfil : consulta
+FormularioRegistro ..> ServicioRegistro : envia datos
+
+ServicioRegistro ..> Persona : crea
+ServicioRegistro ..> DatosAdicionales : crea
+ServicioRegistro ..> Usuario : crea
+
+' =========================================================
+' RELACIONES INSTITUCIONALES
+' =========================================================
+
+TipoEntidad "1" <-- "0..*" ClienteInstitucional : clasifica
+
+ClienteInstitucional "1" -- "1..*" ContactoInstitucional : vincula
+Persona "1" -- "0..*" ContactoInstitucional : representa
+
+' =========================================================
+' RELACIONES DE FLOTA
+' =========================================================
+
+CategoriaVehiculo "1" <-- "0..*" Vehiculo : clasifica
+EstadoVehiculo "1" <-- "0..*" Vehiculo : establece estado
+TipoCombustible "1" <-- "0..*" Vehiculo : utiliza
+
+Persona "1" -- "0..1" ConductorEntidad : habilita
+CategoriaLicencia "1" <-- "0..*" ConductorEntidad : clasifica
+
+TipoDocumentoVehiculo "1" <-- "0..*" DocumentoVehiculo : clasifica
+Vehiculo "1" *-- "0..*" DocumentoVehiculo : posee
+
+TipoMantenimiento "1" <-- "0..*" Mantenimiento : clasifica
+Vehiculo "1" -- "0..*" Mantenimiento : recibe
+
+' =========================================================
+' RELACIONES DEL ALQUILER
+' =========================================================
+
+ClienteInstitucional "1" -- "0..*" SolicitudServicio : solicita
+EstadoSolicitud "1" <-- "0..*" SolicitudServicio : establece estado
+
+SolicitudServicio "1" -- "0..1" Reserva : origina
+
+Vehiculo "1" -- "0..*" Reserva : se asigna
+EstadoReserva "1" <-- "0..*" Reserva : establece estado
+
+Reserva "1" -- "0..*" AsignacionConductor : requiere
+ConductorEntidad "1" -- "0..*" AsignacionConductor : recibe
+
+' =========================================================
+' RELACIONES COMERCIALES
+' =========================================================
+
+SolicitudServicio "1" -- "0..*" Cotizacion : genera
+EstadoCotizacion "1" <-- "0..*" Cotizacion : establece estado
+
+Cotizacion "1" *-- "1..*" DetalleCotizacion : contiene
+
+Reserva "1" -- "0..*" Pago : recibe
+MetodoPago "1" <-- "0..*" Pago : utiliza
+
+' =========================================================
+' ORDEN VISUAL BASADO EN EL TABLERO DEL PROFESOR
+' =========================================================
+
+' NÚCLEO: TipoDocumento - Persona - Perfil en la parte superior.
+' Debajo quedan los datos adicionales, usuario y formulario.
+TipoDocumento -[hidden]right-> Persona
+Persona -[hidden]right-> Perfil
+Persona -[hidden]down-> DatosAdicionales
+Perfil -[hidden]down-> Usuario
+DatosAdicionales -[hidden]right-> Usuario
+Usuario -[hidden]right-> FormularioRegistro
+FormularioRegistro -[hidden]down-> ServicioRegistro
+
+' SEGURIDAD: permisos y sesiones cerca de Perfil y Usuario.
+Perfil -[hidden]down-> PerfilPermiso
+Permiso -[hidden]left-> PerfilPermiso
+Usuario -[hidden]down-> SesionUsuario
+
+' CLIENTES INSTITUCIONALES: tipo, cliente y contacto en secuencia.
+TipoEntidad -[hidden]down-> ClienteInstitucional
+ClienteInstitucional -[hidden]down-> ContactoInstitucional
+
+' FLOTA: catálogos agrupados sobre el vehículo; licencia junto al conductor.
+CategoriaVehiculo -[hidden]right-> EstadoVehiculo
+EstadoVehiculo -[hidden]right-> TipoCombustible
+CategoriaVehiculo -[hidden]down-> Vehiculo
+CategoriaLicencia -[hidden]down-> ConductorEntidad
+
+' DOCUMENTOS Y MANTENIMIENTO: dos columnas relacionadas con Vehiculo.
+TipoDocumentoVehiculo -[hidden]right-> TipoMantenimiento
+TipoDocumentoVehiculo -[hidden]down-> DocumentoVehiculo
+TipoMantenimiento -[hidden]down-> Mantenimiento
+DocumentoVehiculo -[hidden]right-> Mantenimiento
+Vehiculo -[hidden]down-> DocumentoVehiculo
+
+' ALQUILER: solicitud y reserva como eje central del proceso.
+EstadoSolicitud -[hidden]right-> SolicitudServicio
+SolicitudServicio -[hidden]right-> EstadoReserva
+EstadoReserva -[hidden]down-> Reserva
+SolicitudServicio -[hidden]down-> Reserva
+Reserva -[hidden]down-> AsignacionConductor
+
+' COTIZACIONES Y PAGOS: cotización/detalle y método/pago en columnas.
+EstadoCotizacion -[hidden]down-> Cotizacion
+Cotizacion -[hidden]down-> DetalleCotizacion
+Cotizacion -[hidden]right-> MetodoPago
+MetodoPago -[hidden]down-> Pago
+
+' SECUENCIA GENERAL DE LOS MÓDULOS: evita una única fila demasiado ancha.
+ServicioRegistro -[hidden]down-> Permiso
+Permiso -[hidden]right-> TipoEntidad
+ContactoInstitucional -[hidden]down-> CategoriaVehiculo
+Vehiculo -[hidden]down-> TipoDocumentoVehiculo
+Mantenimiento -[hidden]down-> EstadoSolicitud
+AsignacionConductor -[hidden]down-> EstadoCotizacion
+
+' =========================================================
+' REGLAS DE NORMALIZACIÓN
+' =========================================================
+
+legend bottom
+  |= Concepto |= Aplicación en el modelo |
+  | Atomicidad | Nombres, apellidos, teléfono y dirección se almacenan por componentes |
+  | Dependencia atributiva | Cada atributo pertenece a la clase que realmente describe |
+  | Dependencia funcional | Cada PK determina todos los atributos no clave de su clase |
+  | Datos adicionales | Teléfono, correo y dirección se concentran en DatosAdicionalesPersona |
+  | Edad | Se deriva de fechaNacimiento y no se almacena de forma independiente |
+  | Perfil | Representa el cargo y no es una subclase de Persona |
+  | TipoDocumento | Mantiene las reglas y descripción del documento |
+  | Cliente institucional | Embajadas, consulados y organismos no heredan de Persona |
+  | FormularioRegistro | Es interfaz; no se transforma en tabla de PostgreSQL |
+endlegend
+
+@enduml
