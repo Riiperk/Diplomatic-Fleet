@@ -1,0 +1,2463 @@
+{
+  "info": {
+    "name": "Diplomatic Fleet | Pruebas V10",
+    "_postman_id": "4e68c58d-7184-4364-bb41-fb3ccb959bda",
+    "description": "Pruebas locales sobre V10. Ejecutar escrituras individualmente, con reservas y cuentas de demostración. No se procesan pagos reales.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 · Consultas seguras",
+      "item": [
+        {
+          "name": "Consultar catálogo público",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/public/vehiculos",
+            "description": "No requiere autenticación; devuelve únicamente vehículos activos, disponibles y con precio.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test(\"Catálogo en formato JSON\",()=>pm.expect(pm.response.json()).to.be.an(\"array\"));",
+                  "const cars=pm.response.json();if(cars.length){pm.environment.set(\"vehiculoId\",cars[0].id);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar catálogo por fechas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/public/vehiculos?inicio={{inicioISO}}&fin={{finISO}}",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Calcula fechas futuras para evitar tener que actualizar el ejemplo cada día.",
+                  "const d=new Date();d.setDate(d.getDate()+2);d.setHours(14,0,0,0);",
+                  "const fin=new Date(d);fin.setDate(fin.getDate()+2);",
+                  "pm.environment.set(\"inicioISO\",d.toISOString());",
+                  "pm.environment.set(\"finISO\",fin.toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test(\"Consulta por fechas\",()=>pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar las mismas fechas tras cancelación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/public/vehiculos?inicio={{inicioISO}}&fin={{finISO}}",
+            "description": "No genera fechas nuevas: usa inicioISO, finISO y vehiculoId de la reserva cancelada. Debe devolver la unidad si no tiene otro bloqueo.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "if(pm.response.code===200)pm.test(\"Unidad liberada\",()=>pm.expect(pm.response.json().some(v=>String(v.id)===String(pm.environment.get(\"vehiculoId\")))).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verificar login CLIENTE",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test(\"Rol cliente\",()=>pm.expect(pm.response.json().rol).to.eql(\"CLIENTE\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verificar login ADMINISTRADOR",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test(\"Rol administrador\",()=>pm.expect(pm.response.json().rol).to.eql(\"ADMINISTRADOR\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar mis reservas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/solicitudes/mias",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar solicitudes (admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar vehículos (admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehiculos",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar vehículo ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehiculos/{{vehiculoId}}",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clientes institucionales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/clientes",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Documentos de vehículos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/documentos",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mantenimientos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/mantenimientos",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conductores autorizados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/conductores",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cotizaciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/cotizaciones",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Usuarios y roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/usuarios",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reportes administrativos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/reportes",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validación de roles: cliente NO accede a admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/usuarios",
+            "description": "La API debe impedir consultar cuentas como CLIENTE. Si da 200, existe un problema de seguridad.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([403]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 · Pruebas con escritura (ejecutar consciente)",
+      "item": [
+        {
+          "name": "Registrar cliente institucional (crea registros)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/registro",
+            "description": "Usar correo e institución de prueba nuevos; no ejecutar sobre la cuenta existente. Ciudad y dirección obligatorias.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cliente\",\n  \"apellido\": \"Prueba\",\n  \"correo\": \"{{clientEmail}}\",\n  \"password\": \"{{clientPassword}}\",\n  \"nombreEntidad\": \"{{nombreEntidad}}\",\n  \"tipoEntidad\": \"EMBAJADA\",\n  \"telefono\": \"3000000000\",\n  \"ciudad\": \"Bogotá\",\n  \"direccion\": \"Carrera 10 # 20-30\",\n  \"numeroIdentificacionFiscal\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "if(pm.response.code<300){const data=pm.response.json();pm.environment.set(\"clienteInstitucionalId\",data.clienteInstitucionalId);pm.test(\"Rol cliente\",()=>pm.expect(data.rol).to.eql(\"CLIENTE\"));}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear solicitud de alquiler (genera reserva)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/solicitudes",
+            "description": "Ejecute primero Consultar catálogo por fechas y seleccione un ID disponible. Mantenga las mismas fechas. Use una solicitud independiente para cada alternativa de escritura.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": {{vehiculoId}},\n  \"inicio\": \"{{inicioISO}}\",\n  \"fin\": \"{{finISO}}\",\n  \"recogida\": \"Aeropuerto El Dorado, Bogotá\",\n  \"devolucion\": \"Centro de Bogotá\",\n  \"pasajeros\": 2,\n  \"observaciones\": \"Prueba funcional académica\",\n  \"metodoPago\": \"TRANSFERENCIA\",\n  \"modalidad\": \"{{modalidad}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([201]); });",
+                  "if(pm.response.code===201){pm.environment.set(\"reservaId\",pm.response.json().id);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Aprobar solicitud (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes/{{reservaId}}/estado",
+            "description": "⚠ Cambia el estado de la reserva. Solo después de crearla; confirma desde RECIBIDA o EN_REVISION.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"CONFIRMADA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar solicitud (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes/{{reservaId}}/estado",
+            "description": "⚠ Alternativa a Aprobar, no ejecutar ambas sobre la misma reserva.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"RECHAZADA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar solicitud (cliente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/solicitudes/{{reservaId}}/cancelar",
+            "description": "⚠ Alternativa al aprobar. Permitida solo en estados elegibles.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Cambio de planes institucionales\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar vehículo (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehiculos",
+            "description": "⚠ Crea un vehículo en BD; testPlaca debe ser una cadena corta y única.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoriaId\": 2,\n  \"placa\": \"DF{{testPlaca}}\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Corolla\",\n  \"anio\": 2025,\n  \"color\": \"Negro\",\n  \"combustible\": \"GASOLINA\",\n  \"capacidadPasajeros\": 4,\n  \"capacidadEquipaje\": 2,\n  \"activo\": true,\n  \"tarifaDiaria\": 300000,\n  \"imagenUrl\": \"/assets/images/diplomatic-sedan.png\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([201]); });",
+                  "if(pm.response.code===201){pm.environment.set(\"vehiculoIdCreado\",pm.response.json().id);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar vehículo (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehiculos/{{vehiculoIdCreado}}",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoriaId\": 2,\n  \"placa\": \"DF{{testPlaca}}\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Corolla\",\n  \"anio\": 2025,\n  \"color\": \"Gris\",\n  \"combustible\": \"GASOLINA\",\n  \"capacidadPasajeros\": 4,\n  \"capacidadEquipaje\": 2,\n  \"activo\": true,\n  \"tarifaDiaria\": 320000,\n  \"imagenUrl\": \"/assets/images/diplomatic-sedan.png\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Programar mantenimiento (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/mantenimientos",
+            "description": "⚠ Guarda mantenimiento; fechaMantenimiento YYYY-MM-DD futura.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": {{vehiculoId}},\n  \"tipo\": \"PREVENTIVO\",\n  \"descripcion\": \"Revisión preventiva académica\",\n  \"fechaProgramada\": \"{{fechaMantenimiento}}\",\n  \"proveedor\": \"Taller de prueba\",\n  \"costo\": 120000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([201]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar documento (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/documentos",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": {{vehiculoId}},\n  \"tipoDocumento\": \"SOAT\",\n  \"numeroDocumento\": \"TEST-001\",\n  \"fechaEmision\": \"2026-01-01\",\n  \"fechaVencimiento\": \"2027-01-01\",\n  \"observaciones\": \"Documento de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Respuesta esperada\", function () { pm.expect(pm.response.code).to.be.oneOf([201]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 · Pago externo y ciclo real V10 (usar reservas independientes para alternativas)",
+      "item": [
+        {
+          "name": "03. Cliente: informar transferencia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/solicitudes/{{reservaId}}/pago/reportar",
+            "description": "Ejecutar tras crear una reserva con metodoPago TRANSFERENCIA. No mueve dinero.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"referencia\": \"TRX-DEMO-2026-123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 esperado\",()=>pm.response.to.have.status(200));",
+                  "if(pm.response.code===200)pm.test(\"Estado actualizado\",()=>pm.expect(pm.response.json().estadoPago).to.eql(\"REPORTADO\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04. Admin: verificar pago recibido",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes/{{reservaId}}/pago",
+            "description": "Solo cuando se haya comprobado realmente el pago fuera del sistema.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"VERIFICADO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 esperado\",()=>pm.response.to.have.status(200));",
+                  "if(pm.response.code===200)pm.test(\"Estado actualizado\",()=>pm.expect(pm.response.json().estadoPago).to.eql(\"VERIFICADO\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05. Admin: confirmar reserva",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes/{{reservaId}}/estado",
+            "description": "Desde RECIBIDA o EN_REVISION.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"CONFIRMADA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 esperado\",()=>pm.response.to.have.status(200));",
+                  "if(pm.response.code===200)pm.test(\"Estado actualizado\",()=>pm.expect(pm.response.json().estado).to.eql(\"CONFIRMADA\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06. Admin: iniciar entrega real",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes/{{reservaId}}/estado",
+            "description": "La entrega exige pago verificado, unidad libre, fechas válidas y motivo cuando es anticipada.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"EN_SERVICIO\",\n  \"motivoInicio\": \"Entrega anticipada de demostración autorizada.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 esperado\",()=>pm.response.to.have.status(200));",
+                  "if(pm.response.code===200)pm.test(\"Estado actualizado\",()=>pm.expect(pm.response.json().estado).to.eql(\"EN_SERVICIO\"));",
+                  "if(pm.response.code===200)pm.test(\"Fecha real registrada\",()=>pm.expect(pm.response.json().fechaInicioReal).to.be.a(\"string\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07. Admin: finalizar devolucion anticipada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes/{{reservaId}}/estado",
+            "description": "Solo desde EN_SERVICIO; admin confirma recepcion real del vehiculo.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"FINALIZADA\",\n  \"motivoCierre\": \"Vehiculo devuelto anticipadamente y recibido por la flota\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 esperado\",()=>pm.response.to.have.status(200));",
+                  "if(pm.response.code===200)pm.test(\"Estado actualizado\",()=>pm.expect(pm.response.json().estado).to.eql(\"FINALIZADA\"));",
+                  "if(pm.response.code===200)pm.test(\"Fecha real registrada\",()=>pm.expect(pm.response.json().fechaFinReal).to.be.a(\"string\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08. Alternativa: cancelar reserva antes de iniciar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/solicitudes/{{reservaId}}/cancelar",
+            "description": "Esta accion NO se puede ejecutar sobre la misma reserva ya finalizada.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Se modifico el itinerario\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 esperado\",()=>pm.response.to.have.status(200));",
+                  "if(pm.response.code===200)pm.test(\"Estado actualizado\",()=>pm.expect(pm.response.json().estado).to.eql(\"CANCELADA\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09. Admin: cancelar reserva confirmada no iniciada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/solicitudes/{{reservaId}}/cancelar",
+            "description": "Alternativa a iniciar/finalizar, nunca sobre misma reserva.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Servicio institucional suspendido\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 esperado\",()=>pm.response.to.have.status(200));",
+                  "if(pm.response.code===200)pm.test(\"Estado actualizado\",()=>pm.expect(pm.response.json().estado).to.eql(\"CANCELADA\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10. Admin: registrar reembolso efectuado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes/{{reservaId}}/pago",
+            "description": "Solo cuando estadoPago=REEMBOLSO_PENDIENTE. No mueve dinero.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"REEMBOLSADO\",\n  \"observacion\": \"Reembolso real a la cuenta del cliente comprobado por tesoreria\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 esperado\",()=>pm.response.to.have.status(200));",
+                  "if(pm.response.code===200)pm.test(\"Estado actualizado\",()=>pm.expect(pm.response.json().estadoPago).to.eql(\"REEMBOLSADO\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11. Cliente: no puede verificar pagos (403)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes/{{reservaId}}/pago",
+            "description": "Prueba de permisos, esperado 403.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"VERIFICADO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403 esperado\",()=>pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 | V10 consultas, permisos y cotizaciones",
+      "item": [
+        {
+          "name": "Profesionales disponibles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/conductores-profesionales",
+            "description": "Obtiene IDs de profesionales para asignación.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cotizaciones de mi institución",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cliente/cotizaciones",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agenda del conductor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/conductor/asignaciones",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{driverEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{driverPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Operador consulta flota",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehiculos",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{operatorEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{operatorPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Operador NO consulta usuarios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/usuarios",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{operatorEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{operatorPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cliente NO consulta agenda profesional",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/conductor/asignaciones",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historial técnico administrativo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/auditoria",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cliente NO consulta auditoría",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/auditoria",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear cotización para reserva pendiente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/cotizaciones",
+            "description": "Utilizar una reserva RECIBIDA independiente.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"solicitudId\":{{reservaId}},\"validaHasta\":\"{{vigenciaCotizacion}}\",\"observaciones\":\"Prueba académica\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Genera vigencia si no se ha establecido manualmente.",
+                  "if (!pm.environment.get(\"vigenciaCotizacion\")) {const d=new Date();d.setDate(d.getDate()+1);pm.environment.set(\"vigenciaCotizacion\",d.toISOString().slice(0,10));}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) pm.environment.set(\"cotizacionId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar cotización",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/cotizaciones/{{cotizacionId}}/estado",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"estado\":\"ENVIADA\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cliente acepta su cotización",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cliente/cotizaciones/{{cotizacionId}}/estado",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"estado\":\"ACEPTADA\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirmar después de aceptación",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes/{{reservaId}}/estado",
+            "description": "",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"estado\":\"CONFIRMADA\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asignar profesional a reserva confirmada CON_CONDUCTOR",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes/{{reservaId}}/conductor",
+            "description": "Preparar una reserva nueva con modalidad CON_CONDUCTOR.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"conductorId\":{{conductorId}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inicio sin pago verificado (debe fallar)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes/{{reservaId}}/estado",
+            "description": "Usar reserva confirmada y sin pago verificado.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"estado\":\"EN_SERVICIO\",\"motivoInicio\":\"Prueba de restricción\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inicio anticipado sin motivo (debe fallar)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/solicitudes/{{reservaId}}/estado",
+            "description": "Usar reserva futura confirmada con pago verificado y conductor asignado si aplica.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"estado\":\"EN_SERVICIO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 | Modificación de fechas (casos independientes)",
+      "description": "Pruebe la reprogramación antes de cotizar. No ejecute las dos alternativas sobre el mismo estado.",
+      "item": [
+        {
+          "name": "Cliente modifica fechas antes de cotizar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/solicitudes/{{reservaId}}/periodo",
+            "description": "Utilizar una solicitud RECIBIDA propia, futura, sin cotización ni pago reportado. Compruebe antes disponibilidad del vehículo en el periodo nuevo. Las fechas se toman de las variables nuevoInicioISO y nuevoFinISO.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inicio\": \"{{nuevoInicioISO}}\",\n  \"fin\": \"{{nuevoFinISO}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Periodo actualizado\",()=>pm.response.to.have.status(200));",
+                  "if(pm.response.code===200){const r=pm.response.json();pm.test(\"Fechas persistidas\",()=>{pm.expect(new Date(r.inicio).getTime()).to.eql(new Date(pm.environment.get(\"nuevoInicioISO\")).getTime());pm.expect(new Date(r.fin).getTime()).to.eql(new Date(pm.environment.get(\"nuevoFinISO\")).getTime());});}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cliente NO modifica una reserva finalizada (409)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/solicitudes/{{reservaId}}/periodo",
+            "description": "Use el ID de una reserva propia FINALIZADA. Configure fechas nuevas futuras y válidas. Debe rechazar el cambio.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{clientEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{clientPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inicio\": \"{{nuevoInicioISO}}\",\n  \"fin\": \"{{nuevoFinISO}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Cambio de reserva cerrada bloqueado\",()=>pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

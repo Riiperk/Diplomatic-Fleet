@@ -12,6 +12,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import java.time.OffsetDateTime
+import java.math.BigDecimal
 
 /**
  * Vehículo perteneciente a la flota de Diplomatic Fleet.
@@ -106,6 +107,12 @@ class Vehiculo(
     )
     var capacidadEquipaje: Int = 0,
 
+    @field:Column(name = "tarifa_diaria", nullable = true, precision = 12, scale = 2)
+    var tarifaDiaria: BigDecimal? = BigDecimal("350000.00"),
+
+    @field:Column(name = "imagen_url", length = 800)
+    var imagenUrl: String? = null,
+
     @field:Enumerated(EnumType.STRING)
     @field:Column(
         name = "estado",
@@ -119,6 +126,13 @@ class Vehiculo(
         nullable = false,
     )
     var activo: Boolean = true,
+
+    @field:Column(name = "descripcion", length = 600)
+    var descripcion: String? = null,
+
+    @field:Column(name = "blindado", nullable = false)
+    var blindado: Boolean = false,
+
 
     @field:Column(
         name = "creado_en",

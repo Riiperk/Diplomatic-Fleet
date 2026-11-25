@@ -72,4 +72,6 @@ interface VehiculoRepository : JpaRepository<Vehiculo, Long> {
         combustible: TipoCombustible,
         activo: Boolean,
     ): List<Vehiculo>
+
+    fun findAllByActivoTrueOrderByMarcaAscModeloAsc(): List<Vehiculo>
 }

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import DemoSidebar from '@/components/layout/DemoSidebar.vue'
+import VehiculoFoto from '@/components/catalogo/VehiculoFoto.vue'
 import {
   listarVehiculos,
   registrarVehiculo,
+  actualizarVehiculo,
   type EstadoVehiculo,
   type TipoCombustible,
   type VehiculoRequest,
@@ -25,6 +27,7 @@ import {
 const vehiculos = ref<VehiculoResponse[]>([])
 const cargando = ref(false)
 const guardando = ref(false)
+const editandoId = ref<number|null>(null)
 const mensaje = ref('')
 const esError = ref(false)
 const busqueda = ref('')
@@ -41,6 +44,8 @@ const formulario = reactive<VehiculoRequest>({
   capacidadPasajeros: 1,
   capacidadEquipaje: 0,
   activo: true,
+  tarifaDiaria: 350000,
+  imagenUrl: "",
 })
 
 const categorias = [
@@ -179,18 +184,23 @@ async function guardarVehiculo(): Promise<void> {
   esError.value = false
 
   try {
-    const vehiculoCreado = await registrarVehiculo({
+    const vehiculoCreado = editandoId.value !== null
+      ? await actualizarVehiculo(editandoId.value, {
       ...formulario,
       placa: formulario.placa.trim().toUpperCase(),
       marca: formulario.marca.trim(),
       modelo: formulario.modelo.trim(),
       color: formulario.color.trim(),
     })
+      : await registrarVehiculo({ ...formulario, placa: formulario.placa.trim().toUpperCase(), marca: formulario.marca.trim(), modelo: formulario.modelo.trim(), color: formulario.color.trim() })
 
-    vehiculos.value.unshift(vehiculoCreado)
+    if (editandoId.value !== null) {
+      const pos = vehiculos.value.findIndex(v=>v.id===editandoId.value)
+      if(pos>=0) vehiculos.value[pos]=vehiculoCreado
+    } else vehiculos.value.unshift(vehiculoCreado)
 
     mensaje.value =
-      `Vehículo ${vehiculoCreado.placa} registrado correctamente.`
+      `Vehículo ${vehiculoCreado.placa} guardado correctamente.`
 
     limpiarFormulario()
   } catch (error) {
@@ -207,7 +217,15 @@ async function guardarVehiculo(): Promise<void> {
 /**
  * Restablece el formulario conservando valores iniciales válidos.
  */
+function editarVehiculo(v:VehiculoResponse):void {
+  editandoId.value=v.id
+  Object.assign(formulario,{categoriaId:v.categoriaId,placa:v.placa,marca:v.marca,modelo:v.modelo,
+    anio:v.anio,color:v.color,combustible:v.combustible,capacidadPasajeros:v.capacidadPasajeros,
+    capacidadEquipaje:v.capacidadEquipaje,activo:v.activo,tarifaDiaria:v.tarifaDiaria ?? 350000,imagenUrl:v.imagenUrl ?? ""})
+  window.scrollTo({top:0,behavior:'smooth'})
+}
 function limpiarFormulario(): void {
+  editandoId.value=null
   formulario.categoriaId = 2
   formulario.placa = ''
   formulario.marca = ''
@@ -218,6 +236,8 @@ function limpiarFormulario(): void {
   formulario.capacidadPasajeros = 1
   formulario.capacidadEquipaje = 0
   formulario.activo = true
+  formulario.tarifaDiaria = 350000
+  formulario.imagenUrl = ""
 }
 
 /**
@@ -594,6 +614,12 @@ onMounted(cargarVehiculos)
               </div>
             </fieldset>
 
+            <div class="df-fields" style="margin:15px 0"><div class="df-field"><label for="tarifa">Tarifa diaria (COP)</label><input id="tarifa" v-model.number="formulario.tarifaDiaria" type="number" min="0" step="1000" required /></div><div class="df-field"><label for="foto">URL imagen (opcional)</label><input id="foto" v-model="formulario.imagenUrl" maxlength="800" placeholder="https://servidor.com/foto.jpg" /></div></div>
+            <!-- La URL se guarda por la API existente; la previsualización no modifica la base. -->
+            <div class="df-url-preview">
+              <p>Use la dirección HTTPS directa de una fotografía, no la página de Google Imágenes. Compruebe la vista previa antes de guardar.</p>
+              <VehiculoFoto :url="formulario.imagenUrl" :modelo="`${formulario.marca} ${formulario.modelo}`.trim() || 'Vehículo'" />
+            </div>
             <button
               class="register-button"
               type="submit"
@@ -602,8 +628,8 @@ onMounted(cargarVehiculos)
               <span>
                 {{
                   guardando
-                    ? 'Registrando unidad...'
-                    : 'Confirmar registro'
+                    ? 'Guardando unidad...'
+                    : editandoId !== null ? 'Guardar cambios' : 'Registrar vehículo'
                 }}
               </span>
 
@@ -776,9 +802,9 @@ onMounted(cargarVehiculos)
                   }}
                 </span>
 
-                <small>
-                  {{ vehiculo.nombreCategoria }}
-                </small>
+                <small>{{ vehiculo.nombreCategoria }}</small>
+                <small>{{ vehiculo.tarifaDiaria == null ? 'A cotizar' : vehiculo.tarifaDiaria.toLocaleString('es-CO') + ' COP / día' }}</small>
+                <button class="df-button mini" type="button" @click="editarVehiculo(vehiculo)">Editar</button>
               </div>
             </article>
           </div>
@@ -2327,4 +2353,8 @@ button:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+/* Vista previa de la URL persistida: tamaño reservado para evitar saltos. */
+.df-url-preview{margin:0 0 22px;padding:12px;border:2px solid #151515;background:#f4f0e8;}
+.df-url-preview p{font-size:.8rem;margin:0 0 10px;line-height:1.5;}
+.df-url-preview :deep(.df-foto){max-width:340px;min-height:200px;height:220px;}
 </style>

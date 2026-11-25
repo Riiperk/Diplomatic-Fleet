@@ -1,0 +1,45 @@
+@startuml DF_Operativo_V10
+' Diagrama del esquema operativo, distinto del ER conceptual del profesor.
+title Diplomatic Fleet - Relaciones operativas V10
+skinparam monochrome true
+skinparam shadowing false
+hide methods
+entity usuarios { *id : bigint <<PK>> }
+entity roles { *id : bigint <<PK>> }
+entity usuarios_roles
+entity clientes_institucionales { *id : bigint <<PK>> }
+entity categorias_vehiculo { *id : bigint <<PK>> }
+entity vehiculos { *id : bigint <<PK>> }
+entity documentos_vehiculo
+entity mantenimientos
+entity conductores_autorizados
+entity conductores_profesionales { *id : bigint <<PK>> }
+entity solicitudes { *id : bigint <<PK>> }
+entity pagos_reserva
+entity cotizaciones
+entity detalles_cotizacion
+entity solicitudes_catalogo
+entity auditoria_operativa
+usuarios ||--o{ usuarios_roles
+roles ||--o{ usuarios_roles
+clientes_institucionales |o--o{ usuarios
+clientes_institucionales ||--o{ solicitudes
+usuarios ||--o{ solicitudes : crea
+usuarios ||--o| conductores_profesionales
+clientes_institucionales ||--o{ conductores_autorizados
+categorias_vehiculo ||--o{ vehiculos
+vehiculos ||--o{ documentos_vehiculo
+vehiculos ||--o{ mantenimientos
+vehiculos |o--o{ solicitudes
+conductores_autorizados |o--o{ solicitudes
+conductores_profesionales |o--o{ solicitudes
+solicitudes ||--o| pagos_reserva
+solicitudes ||--o{ cotizaciones
+cotizaciones ||--o{ detalles_cotizacion
+vehiculos ||--o{ solicitudes_catalogo
+note right of auditoria_operativa
+  Historial tecnico por triggers.
+  Relacion logica por tabla e id,
+  no FK polimorfica.
+end note
+@enduml

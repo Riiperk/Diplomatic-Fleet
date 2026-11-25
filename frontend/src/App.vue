@@ -14,5 +14,10 @@ import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <RouterView />
+  <!-- Transición de entrada por ruta; no retrasa las operaciones de la API. -->
+  <RouterView v-slot="{ Component, route }">
+    <Transition name="df-route" mode="out-in">
+      <component :is="Component" :key="route.path" />
+    </Transition>
+  </RouterView>
 </template>

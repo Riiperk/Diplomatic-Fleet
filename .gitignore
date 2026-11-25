@@ -42,3 +42,19 @@ out/
 # Variables locales y credenciales
 .env
 .env.local
+# Credenciales y artefactos locales de Postman
+.env.*
+!.env.example
+*.postman_environment.json
+!*.postman_environment.example.json
+frontend/node_modules/
+frontend/dist/
+*.backup
+*.dump
+
+# Artefactos locales de despliegue y respaldos
+*.bak
+*.pgdump
+*.sql.gz
+DF_V13_RESPALDO_*/
+.dev.vars*

@@ -445,7 +445,7 @@ body {
   box-shadow: 0 0 0 3px var(--blanco);
 }
 
-form {
+.login-page form {
   display: grid;
   gap: 1.15rem;
 }
@@ -454,7 +454,7 @@ form {
   gap: 0.35rem;
 }
 
-label {
+.login-page label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -472,9 +472,9 @@ label {
   transform: skewX(-18deg);
 }
 
-input[type='email'],
-input[type='password'],
-input[type='text'] {
+.login-page input[type='email'],
+.login-page input[type='password'],
+.login-page input[type='text'] {
   width: 100%;
   min-height: 50px;
   padding: 0.7rem 1rem;
@@ -488,14 +488,14 @@ input[type='text'] {
     transform 0.1s ease,
     box-shadow 0.1s ease;
 }
-input[type='email']:focus,
-input[type='password']:focus,
-input[type='text']:focus {
+.login-page input[type='email']:focus,
+.login-page input[type='password']:focus,
+.login-page input[type='text']:focus {
   border-color: var(--rojo);
   box-shadow: 5px 5px 0 var(--negro);
   transform: translate(-2px, -2px);
 }
-input[aria-invalid='true'] {
+.login-page input[aria-invalid='true'] {
   border-color: var(--rojo);
   background: #fff1f3;
 }
@@ -801,9 +801,9 @@ input[aria-invalid='true'] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .login-page *,
+  .login-page *::before,
+  .login-page *::after {
     animation: none !important;
     transition: none !important;
   }
@@ -874,10 +874,48 @@ input[aria-invalid='true'] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .login-page *,
+  .login-page *::before,
+  .login-page *::after {
     animation: none !important;
     transition: none !important;
   }
 }
+
+/* Registro visible dentro de la tarjeta de login */
+.account-access-links {display:flex;flex-direction:column;gap:.55rem;align-items:stretch;margin-top:1.45rem;padding-top:1rem;border-top:3px solid #141419;text-align:center;}
+.account-access-links p {margin:0;font-weight:800;font-size:.88rem;color:#222;}
+.account-access-links .create-account-link {display:block;padding:.7rem 1rem;background:#101014;color:#fff;border:2px solid #101014;box-shadow:4px 4px 0 #cc1633;text-decoration:none;font-size:.95rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;}
+.account-access-links .create-account-link:hover,.account-access-links .create-account-link:focus-visible{background:#c8102e;outline:2px solid #111;outline-offset:2px;}
+.account-access-links .browse-catalog-link{color:#121217;font-weight:800;text-underline-offset:3px;}
+/* V12: movimiento de entrada y rotación independientes. Se animan transformaciones
+   y opacidad, no el fondo completo, filtros o sombras de gran superficie. */
+@keyframes df-login-rise { from { opacity: 0; translate: 0 14px; } to { opacity: 1; translate: 0 0; } }
+@keyframes df-login-car-in { from { opacity: 0; translate: -70px 15px; } to { opacity: 1; translate: 0 0; } }
+@keyframes df-login-star-in { from { opacity: 0; scale: .65; } to { opacity: 1; scale: 1; } }
+@keyframes df-login-shard { 0%,100% { translate: 0 0; } 50% { translate: 14px -10px; } }
+@keyframes df-login-stripes { to { transform: translateX(56.57px); } }
+.login-page .star { animation: df-login-star-in .45s both, star-spin 3s linear infinite; filter: none; }
+.login-page .star-two { animation-duration: .45s,2.4s; animation-direction: normal,reverse; animation-delay: .08s,0s; }
+.login-page .star-three { animation-duration: .45s,3.8s; animation-delay: .14s,0s; }
+.login-page .star-four { animation-duration: .45s,2.8s; animation-direction: normal,reverse; animation-delay: .2s,0s; }
+.login-page .vehicle-container { animation: df-login-car-in .65s .1s cubic-bezier(.16,1,.3,1) both; }
+.login-page .vehicle-container img { filter: drop-shadow(3px 3px 0 #fff) drop-shadow(-3px -3px 0 #fff); }
+.login-page .shard-red-dark { animation: df-login-shard 7s ease-in-out infinite; }
+.login-page .bottom-stripes { background: #101014; overflow: hidden; }
+.login-page .bottom-stripes::before { content: ''; position: absolute; inset: 0 -60px; background: repeating-linear-gradient(-45deg,#09090c 0 20px,#c8102e 20px 40px); animation: df-login-stripes 1.6s linear infinite; }
+.login-page .form-field,.login-page .legal-consent,.login-page .account-access-links { animation: df-login-rise .32s .14s both; }
+.login-page .form-field:nth-child(2) { animation-delay: .20s; }
+.login-page .legal-consent { animation-delay: .26s; }
+.login-page .account-access-links { animation-delay: .32s; }
+.login-page .submit-button:disabled { opacity: .72; cursor: wait; }
+.login-page .submit-button .df-inline-spinner { display: inline-block; width: .9em; height: .9em; margin-right: .5em; }
+.login-page .account-access-links a { transition: background .18s ease,translate .18s ease; }
+.login-page .account-access-links a:hover { translate: 0 -2px; }
+/* La geometría original de la tarjeta se conserva; el mensaje aparece justo debajo. */
+.login-page .login-stage { width: min(100%,470px); position: relative; z-index: 2; }
+.login-page .login-stage .login-card { width: 100%; }
+.login-page .login-view-message { margin: 22px 0 0; border: 2px solid #fff; background: #131316; color: #fff; padding: 12px; }
+.login-page .login-view-message.is-error { border-left: 6px solid #ed2644; }
+@media(max-width:950px) { .login-page .login-stage { margin: auto; } }
+@media(prefers-reduced-motion:reduce) { .login-page *,.login-page *::before,.login-page *::after { animation: none!important; transition: none!important; } }

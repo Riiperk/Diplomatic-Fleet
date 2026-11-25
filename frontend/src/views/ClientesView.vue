@@ -22,6 +22,8 @@ const guardando = ref(false)
 const mensaje = ref('')
 const esError = ref(false)
 const busqueda = ref('')
+/** Institucion cargada en el formulario para completar datos historicos. */
+const editandoId = ref<number | null>(null)
 
 const formulario = reactive<ClienteInstitucionalRequest>({
   nombreEntidad: '',
@@ -165,7 +167,7 @@ async function guardarCliente(): Promise<void> {
   esError.value = false
 
   try {
-    const clienteCreado = await registrarCliente({
+    const datos = {
       nombreEntidad: formulario.nombreEntidad.trim(),
       tipoEntidad: formulario.tipoEntidad,
       numeroIdentificacionFiscal:
@@ -184,13 +186,15 @@ async function guardarCliente(): Promise<void> {
       ciudad:
         normalizarTextoOpcional(formulario.ciudad),
       activo: formulario.activo,
-    })
-
-    clientes.value.unshift(clienteCreado)
-
-    mensaje.value =
-      `Cliente ${clienteCreado.nombreEntidad} registrado correctamente.`
-
+    }
+    // El mismo formulario crea instituciones o modifica ciudad y direccion anteriores.
+    const clienteGuardado = editandoId.value === null
+      ? await registrarCliente(datos)
+      : await actualizarCliente(editandoId.value, datos)
+    const indice = clientes.value.findIndex(c => c.id === clienteGuardado.id)
+    if (indice >= 0) clientes.value[indice] = clienteGuardado
+    else clientes.value.unshift(clienteGuardado)
+    mensaje.value = `Cliente ${clienteGuardado.nombreEntidad} guardado correctamente.`
     limpiarFormulario()
   } catch (error) {
     esError.value = true
@@ -266,6 +270,7 @@ function normalizarTextoOpcional(
  * Restablece los valores iniciales del formulario.
  */
 function limpiarFormulario(): void {
+  editandoId.value = null
   formulario.nombreEntidad = ''
   formulario.tipoEntidad = 'EMBAJADA'
   formulario.numeroIdentificacionFiscal = null
@@ -275,6 +280,23 @@ function limpiarFormulario(): void {
   formulario.direccion = null
   formulario.ciudad = null
   formulario.activo = true
+}
+
+/** Carga una institucion para corregir datos de ubicacion sin crear duplicados. */
+function editarCliente(cliente: ClienteInstitucionalResponse): void {
+  editandoId.value = cliente.id
+  formulario.nombreEntidad = cliente.nombreEntidad
+  formulario.tipoEntidad = cliente.tipoEntidad
+  formulario.numeroIdentificacionFiscal = cliente.numeroIdentificacionFiscal
+  formulario.nombreContacto = cliente.nombreContacto
+  formulario.correoContacto = cliente.correoContacto
+  formulario.telefonoContacto = cliente.telefonoContacto
+  formulario.direccion = cliente.direccion
+  formulario.ciudad = cliente.ciudad
+  formulario.activo = cliente.activo
+  mensaje.value = `Editando ${cliente.nombreEntidad}. Completa ciudad y direccion.`
+  esError.value = false
+  window.scrollTo({ top: 200, behavior: 'smooth' })
 }
 
 /**
@@ -355,7 +377,7 @@ onMounted(cargarClientes)
 
           <div>
             <small>Alta institucional</small>
-            <h2>Registrar cliente</h2>
+            <h2>{{ editandoId === null ? 'Registrar cliente' : 'Editar cliente' }}</h2>
           </div>
         </header>
 
@@ -441,24 +463,28 @@ onMounted(cargarClientes)
           </label>
 
           <label>
-            <span>Ciudad</span>
+            <span>Ciudad *</span>
 
             <input
               v-model="formulario.ciudad"
               type="text"
               maxlength="100"
               placeholder="Bogotá"
+              required
+              minlength="2"
             />
           </label>
 
           <label class="full-field">
-            <span>Dirección</span>
+            <span>Dirección *</span>
 
             <input
               v-model="formulario.direccion"
               type="text"
               maxlength="255"
               placeholder="Carrera 00 # 00-00"
+              required
+              minlength="5"
             />
           </label>
 
@@ -486,13 +512,14 @@ onMounted(cargarClientes)
             <span>
               {{
                 guardando
-                  ? 'Registrando...'
-                  : 'Registrar cliente'
+                  ? 'Guardando...'
+                  : (editandoId === null ? 'Registrar cliente' : 'Guardar cambios')
               }}
             </span>
 
             <strong>➜</strong>
           </button>
+          <button v-if="editandoId !== null" class="refresh-button" type="button" @click="limpiarFormulario">Cancelar edición</button>
         </form>
       </article>
 
@@ -594,12 +621,8 @@ onMounted(cargarClientes)
               <strong>
                 {{ cliente.ciudad || 'Sin ciudad' }}
               </strong>
-              <p>
-                {{
-                  cliente.numeroIdentificacionFiscal ||
-                  'Sin identificación fiscal'
-                }}
-              </p>
+              <p>{{ cliente.direccion || 'Dirección pendiente' }}</p>
+              <p>{{ cliente.numeroIdentificacionFiscal || 'Sin identificación fiscal' }}</p>
             </div>
 
             <div class="client-actions">
@@ -613,6 +636,7 @@ onMounted(cargarClientes)
                 {{ cliente.activo ? 'Activo' : 'Inactivo' }}
               </span>
 
+              <button type="button" @click="editarCliente(cliente)">Editar datos</button>
               <button
                 type="button"
                 @click="cambiarEstado(cliente)"

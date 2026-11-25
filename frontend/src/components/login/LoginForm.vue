@@ -14,12 +14,15 @@ export interface LoginCredentials {
  */
 export type LegalDocumentType = 'terms' | 'privacy'
 
+/** Estado de la petición gestionada por LoginView; evita envíos duplicados. */
+const props = withDefaults(defineProps<{ ocupado?: boolean }>(), { ocupado: false })
+
 const emit = defineEmits<{
   /**
    * Entrega las credenciales validadas al componente padre.
    *
    * LoginForm no realiza directamente la petición HTTP. La integración
-   * con Spring Boot se implementará posteriormente en un servicio.
+   * con Spring Boot se ejecuta en LoginView mediante el servicio de acceso.
    */
   submit: [credentials: LoginCredentials]
 
@@ -101,7 +104,7 @@ function togglePasswordVisibility(): void {
  * Valida el formulario y entrega los datos al componente padre.
  */
 function submitForm(): void {
-  if (!validateForm()) {
+  if (props.ocupado || !validateForm()) {
     return
   }
 
@@ -120,7 +123,7 @@ function submitForm(): void {
       </h1>
     </header>
 
-    <form id="login-form" novalidate @submit.prevent="submitForm">
+    <form id="login-form" :aria-busy="ocupado" novalidate @submit.prevent="submitForm">
       <div class="form-field">
         <label for="email">Correo electrónico</label>
 
@@ -203,9 +206,16 @@ function submitForm(): void {
         {{ errors.legal }}
       </small>
 
-      <button class="submit-button" type="submit">
-        <span>Iniciar sesión</span>
+      <button class="submit-button" type="submit" :disabled="ocupado">
+        <span v-if="ocupado" class="df-inline-spinner" aria-hidden="true"></span>
+        <span>{{ ocupado ? 'Verificando acceso…' : 'Iniciar sesión' }}</span>
       </button>
     </form>
+    <!-- Acceso al alta institucional claramente visible en la tarjeta. -->
+    <div class="account-access-links" aria-label="Opciones de acceso">
+      <p>¿Aún no tienes cuenta?</p>
+      <RouterLink class="create-account-link" to="/registro">Crear cuenta de cliente →</RouterLink>
+      <RouterLink class="browse-catalog-link" to="/catalogo">Ver vehículos sin registrarme</RouterLink>
+    </div>
   </article>
 </template>

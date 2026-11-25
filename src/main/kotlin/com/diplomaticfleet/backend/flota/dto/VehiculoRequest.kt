@@ -1,6 +1,8 @@
 package com.diplomaticfleet.backend.flota.dto
 
 import com.diplomaticfleet.backend.flota.domain.TipoCombustible
+import java.math.BigDecimal
+import jakarta.validation.constraints.DecimalMin
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
@@ -105,4 +107,10 @@ data class VehiculoRequest(
     val capacidadEquipaje: Int = 0,
 
     val activo: Boolean = true,
+
+    @field:DecimalMin(value = "0.00", message = "La tarifa no puede ser negativa.")
+    val tarifaDiaria: BigDecimal = BigDecimal("350000.00"),
+
+    @field:Size(max = 800)
+    val imagenUrl: String? = null,
 )

@@ -1,6 +1,7 @@
 package com.diplomaticfleet.backend.exception
 
 import org.springframework.http.HttpStatus
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -32,6 +33,17 @@ data class ErrorResponse(
  */
 @RestControllerAdvice
 class GlobalExceptionHandler {
+
+    /** Convierte argumentos inválidos en HTTP 400. */
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun malformed(exception: IllegalArgumentException): ResponseEntity<ErrorResponse> =
+        construirRespuesta(HttpStatus.BAD_REQUEST, exception.message ?: "Datos inválidos")
+
+    /** Convierte restricciones de integridad en conflicto HTTP 409 sin exponer detalles SQL. */
+    @ExceptionHandler(DataIntegrityViolationException::class)
+    fun databaseConstraint(exception: DataIntegrityViolationException): ResponseEntity<ErrorResponse> =
+        construirRespuesta(HttpStatus.CONFLICT, "Existe un registro duplicado o una referencia inválida")
+
 
     /**
      * Responde con HTTP 404 cuando no existe el recurso solicitado.

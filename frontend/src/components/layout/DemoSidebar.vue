@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { eliminarCredenciales } from '@/services/vehiculoService'
+import { logout as borrarSesion,sesion } from '@/services/api'
 
 /**
  * Elemento disponible en la navegación principal.
@@ -38,12 +38,18 @@ const route = useRoute()
 const router = useRouter()
 
 /**
- * Módulos funcionales mostrados en la demo académica.
+ * Módulos de operación institucional conectados a servicios REST.
  *
  * Cada elemento apunta a una vista específica para conservar
  * una navegación coherente entre las diferentes historias de usuario.
  */
 const navigationItems: NavigationItem[] = [
+  {
+    number: '00',
+    label: 'Catálogo público',
+    description: 'Consulta pública',
+    route: '/catalogo',
+  },
   {
     number: '01',
     label: 'Inicio',
@@ -104,11 +110,22 @@ const navigationItems: NavigationItem[] = [
     description: 'Seguridad y permisos',
     route: '/usuarios',
   },
+  {
+    number: '12', label: 'Auditoría', description: 'Historial técnico', route: '/auditoria',
+  },
+  {
+    number: '11',
+    label: 'Reportes',
+    description: 'Indicadores reales de operación',
+    route: '/reportes',
+  },
+  {number:'13',label:'Modelo diplomático',description:'Acreditaciones y datos normalizados',route:'/dominio'},
 ]
 
 /**
  * Obtiene la ruta que se encuentra seleccionada.
  */
+const visibleItems = computed(()=>sesion()?.rol==='OPERACIONES'?navigationItems.filter(item=>['/catalogo','/vehiculos','/documentos','/mantenimientos','/disponibilidad'].includes(item.route)):navigationItems)
 const activeRoute = computed(
   (): string => route.path,
 )
@@ -130,7 +147,7 @@ async function navigateTo(target: string): Promise<void> {
  * Finaliza la sesión temporal y regresa al acceso.
  */
 async function logout(): Promise<void> {
-  eliminarCredenciales()
+  borrarSesion()
   emit('closeMobile')
   await router.push('/login')
 }
@@ -161,10 +178,12 @@ async function logout(): Promise<void> {
       aria-label="Módulos de Diplomatic Fleet"
     >
       <button
-        v-for="item in navigationItems"
+        v-for="(item, indice) in visibleItems"
         :key="item.route"
         class="navigation-item"
         :class="{ active: activeRoute === item.route }"
+        :aria-current="activeRoute === item.route ? 'page' : undefined"
+        :style="{ '--df-nav-delay': Math.min(indice, 9) * 25 + 'ms' }"
         type="button"
         @click="navigateTo(item.route)"
       >
@@ -183,7 +202,7 @@ async function logout(): Promise<void> {
       <span class="connection-light"></span>
 
       <div>
-        <strong>Sistema conectado</strong>
+        <strong>Operación institucional</strong>
         <small>Vue + Spring Boot + PostgreSQL</small>
       </div>
     </div>

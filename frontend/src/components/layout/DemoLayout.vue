@@ -105,7 +105,7 @@ function closeMobileMenu(): void {
       <footer class="module-footer">
         <div>
           <strong>Diplomatic Fleet</strong>
-          <span>Demo académica · 2026</span>
+          <span>Plataforma administrativa · 2026</span>
         </div>
 
         <p>
