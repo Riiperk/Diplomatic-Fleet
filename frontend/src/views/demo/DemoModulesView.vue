@@ -44,9 +44,9 @@ const configurations: Record<string, ModuleConfiguration> = {
     records: [
       {
         primary: 'Gestión de vehículos',
-        secondary: 'Módulo conectado',
+        secondary: 'Integración activa',
         detail:
-          'Registro y consulta con persistencia real en PostgreSQL.',
+          'Registro y consulta de flota con persistencia PostgreSQL.',
         status: 'Operativo',
         statusType: 'success',
       },
@@ -55,14 +55,14 @@ const configurations: Record<string, ModuleConfiguration> = {
         secondary: 'Gestión administrativa',
         detail:
           'Embajadas, consulados y organismos internacionales.',
-        status: 'En integración',
+        status: 'Integración activa',
         statusType: 'warning',
       },
       {
         primary: 'Solicitudes y cotizaciones',
         secondary: 'Flujo de servicio',
         detail:
-          'Creación, validación y cotización de servicios diplomáticos.',
+          'La gestión real de solicitudes se encuentra en el módulo Solicitudes; cotización formal pendiente.',
         status: 'Demo',
         statusType: 'neutral',
       },
@@ -287,7 +287,7 @@ const currentConfiguration = computed(
     const routeName =
       typeof route.name === 'string'
         ? route.name
-        : 'inicio'
+        : route.path.replace(/^\//, '')
 
     const selectedConfiguration =
       configurations[routeName]
@@ -305,7 +305,7 @@ const currentConfiguration = computed(
  */
 function handleAction(): void {
   message.value =
-    `Acción "${currentConfiguration.value.actionLabel}" disponible en la demo.`
+    `Este módulo es todavía una maqueta de navegación. La acción "${currentConfiguration.value.actionLabel}" no está conectada a PostgreSQL.`
 }
 </script>
 

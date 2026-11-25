@@ -1,0 +1,28 @@
+# Render Blueprint for an academic deployment, with managed PostgreSQL on Neon.
+# All sensitive values are entered in Render, never committed to GitHub.
+services:
+  - type: web
+    name: diplomatic-fleet-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/public/salud
+    envVars:
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DF_FRONTEND_ORIGIN
+        sync: false
+      - key: DF_BASIC_LOCAL
+        value: 'false'
+      - key: DF_PUBLIC_REGISTRATION
+        value: 'false'
+      - key: DB_POOL_SIZE
+        value: '4'

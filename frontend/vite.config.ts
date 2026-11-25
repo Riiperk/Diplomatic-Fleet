@@ -2,7 +2,6 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import vueDevTools from 'vite-plugin-vue-devtools'
 
 /**
  * Configuración de desarrollo del frontend de Diplomatic Fleet.
@@ -12,7 +11,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
  * el desarrollo local.
  */
 export default defineConfig({
-  plugins: [vue(), vueDevTools()],
+  plugins: [vue()],
 
   resolve: {
     alias: {

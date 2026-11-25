@@ -86,6 +86,8 @@ class VehiculoService(
             capacidadEquipaje = request.capacidadEquipaje,
             estado = EstadoVehiculo.DISPONIBLE,
             activo = request.activo,
+            tarifaDiaria = request.tarifaDiaria,
+            imagenUrl = request.imagenUrl?.trim()?.takeIf { it.isNotEmpty() },
         )
 
         return convertirAResponse(
@@ -184,6 +186,8 @@ class VehiculoService(
             }
             capacidadEquipaje = request.capacidadEquipaje
             activo = request.activo
+            tarifaDiaria = request.tarifaDiaria
+            imagenUrl = request.imagenUrl?.trim()?.takeIf { it.isNotEmpty() }
             actualizadoEn = OffsetDateTime.now()
         }
 
@@ -249,6 +253,8 @@ class VehiculoService(
             capacidadEquipaje = vehiculo.capacidadEquipaje,
             estado = vehiculo.estado,
             activo = vehiculo.activo,
+            tarifaDiaria = vehiculo.tarifaDiaria,
+            imagenUrl = vehiculo.imagenUrl,
             creadoEn = vehiculo.creadoEn,
             actualizadoEn = vehiculo.actualizadoEn,
         )

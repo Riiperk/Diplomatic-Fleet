@@ -1,0 +1,10 @@
+# Include only the files required for the backend image. Secrets never enter build context.
+*
+!gradlew
+!build.gradle.kts
+!settings.gradle.kts
+!gradle/
+!gradle/**
+!src/
+!src/main/
+!src/main/**

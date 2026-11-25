@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import diplomaticSedanUrl from '@/assets/images/diplomatic-sedan.png'
 import starThreeUrl from '@/assets/images/estrella_3.png'
 import starSixUrl from '@/assets/images/estrella_6.png'
 import starSevenUrl from '@/assets/images/estrella_7.png'
 import starNineUrl from '@/assets/images/estrella_9.png'
+
+/** Recurso institucional optimizado para evitar decodificación de PNG de gran tamaño. */
+const diplomaticSedanUrl = '/assets/images/portada-flota.webp'
 
 /**
  * Panel visual del inicio de sesión.
@@ -43,7 +45,7 @@ import starNineUrl from '@/assets/images/estrella_9.png'
         </p>
 
         <p class="visual-heading">
-          <span>misiones diplomáticas</span>
+          <span>delegaciones diplomáticas</span>
         </p>
 
         <p class="visual-description">

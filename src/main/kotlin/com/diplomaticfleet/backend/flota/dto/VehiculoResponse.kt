@@ -4,6 +4,7 @@ import com.diplomaticfleet.backend.flota.domain.CodigoCategoriaVehiculo
 import com.diplomaticfleet.backend.flota.domain.EstadoVehiculo
 import com.diplomaticfleet.backend.flota.domain.TipoCombustible
 import java.time.OffsetDateTime
+import java.math.BigDecimal
 
 /**
  * Datos expuestos por la API para representar un vehículo de la flota.
@@ -44,6 +45,8 @@ data class VehiculoResponse(
     val capacidadEquipaje: Int,
     val estado: EstadoVehiculo,
     val activo: Boolean,
+    val tarifaDiaria: BigDecimal?,
+    val imagenUrl: String?,
     val creadoEn: OffsetDateTime,
     val actualizadoEn: OffsetDateTime,
 )
