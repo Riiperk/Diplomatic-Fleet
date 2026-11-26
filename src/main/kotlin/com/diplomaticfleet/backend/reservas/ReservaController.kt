@@ -36,6 +36,7 @@ data class ReservaRequest(
     @field:NotBlank val metodoPago: String = "TRANSFERENCIA",
     val modalidad: String = "SIN_CONDUCTOR",
     val requiereBlindaje: Boolean = false,
+    val solicitarCotizacion: Boolean = false,
 )
 
 /** Respuesta conjunta del alquiler, pago y fechas reales para ambas vistas. */
@@ -51,6 +52,12 @@ data class ReservaResponse(
     val motivoInicioAnticipado: String?,
     val editable: Boolean,
     val requiereBlindaje: Boolean,
+    val estadoCotizacion: String? = null,
+    val montoReportado: BigDecimal? = null, val montoVerificado: BigDecimal? = null,
+    val montoReembolsado: BigDecimal? = null, val reportadoEn: OffsetDateTime? = null,
+    val verificadoEn: OffsetDateTime? = null, val reembolsadoEn: OffsetDateTime? = null,
+    val referenciaVerificacion: String? = null, val referenciaReembolso: String? = null,
+    val observacionPago: String? = null,
 )
 
 /** Los cambios administrativos solo aceptan estados predefinidos. */
@@ -66,10 +73,10 @@ data class MedioPagoRequest(@field:NotBlank val metodo: String)
 data class CancelarRequest(@field:NotBlank @field:jakarta.validation.constraints.Size(max=500) val motivo: String)
 
 /** El cliente declara la referencia de la transferencia (no demuestra cobro). */
-data class ReportarPagoRequest(@field:NotBlank val referencia: String)
+data class ReportarPagoRequest(@field:NotBlank val referencia: String, val monto: BigDecimal? = null)
 
 /** Solo administracion confirma recepcion de dinero o marca un reembolso manual. */
-data class EstadoPagoRequest(@field:NotBlank val estado: String, @field:jakarta.validation.constraints.Size(max=500) val observacion: String? = null)
+data class EstadoPagoRequest(@field:NotBlank val estado: String, @field:jakarta.validation.constraints.Size(max=500) val observacion: String? = null, val monto: BigDecimal? = null, val referencia: String? = null)
 
 /**
  * API de solicitudes de alquiler de Diplomatic Fleet.
@@ -121,7 +128,11 @@ class ReservaController(private val jdbc: JdbcTemplate, private val auth: Usuari
          CONCAT(v.marca,' ',v.modelo) AS vehiculo,ci.nombre_entidad AS cliente,
          s.fecha_inicio,s.fecha_fin,s.lugar_recogida,s.lugar_devolucion,
          s.cantidad_pasajeros,s.estado,s.valor_estimado,
+         (SELECT CASE WHEN c.estado IN ('BORRADOR','ENVIADA') AND c.valida_hasta<CURRENT_DATE THEN 'VENCIDA' ELSE c.estado END
+          FROM cotizaciones c WHERE c.solicitud_id=s.id ORDER BY c.numero_version DESC LIMIT 1) AS estado_cotizacion,
          p.metodo AS metodo_pago,p.estado AS estado_pago,p.referencia AS referencia_pago,
+         p.monto_reportado,p.monto_verificado,p.monto_reembolsado,p.reportado_en,p.verificado_en,p.reembolsado_en,
+         p.referencia_verificacion,p.referencia_reembolso,p.observacion AS observacion_pago,
          s.fecha_inicio_real,s.fecha_fin_real,s.motivo_cierre_anticipado,s.modalidad,s.conductor_profesional_id,s.motivo_inicio_anticipado,s.requiere_blindaje,
          CONCAT_WS(' ',cu.nombre,cu.apellido) AS conductor,
          (s.estado IN ('RECIBIDA','EN_REVISION') AND s.fecha_inicio>NOW() AND s.vehiculo_id IS NOT NULL
@@ -143,7 +154,10 @@ class ReservaController(private val jdbc: JdbcTemplate, private val auth: Usuari
             r.getString("metodo_pago"), r.getString("estado_pago"), r.getString("referencia_pago"),
             r.getObject("fecha_inicio_real", OffsetDateTime::class.java),
             r.getObject("fecha_fin_real", OffsetDateTime::class.java), r.getString("motivo_cierre_anticipado"),
-            r.getString("modalidad"),r.getLong("conductor_profesional_id").let { if(r.wasNull()) null else it },r.getString("conductor").takeIf { it.isNotBlank() },r.getString("motivo_inicio_anticipado"),r.getBoolean("editable"),r.getBoolean("requiere_blindaje"))
+            r.getString("modalidad"),r.getLong("conductor_profesional_id").let { if(r.wasNull()) null else it },r.getString("conductor").takeIf { it.isNotBlank() },r.getString("motivo_inicio_anticipado"),r.getBoolean("editable"),r.getBoolean("requiere_blindaje"),r.getString("estado_cotizacion"),
+            r.getBigDecimal("monto_reportado"),r.getBigDecimal("monto_verificado"),r.getBigDecimal("monto_reembolsado"),
+            r.getObject("reportado_en",OffsetDateTime::class.java),r.getObject("verificado_en",OffsetDateTime::class.java),
+            r.getObject("reembolsado_en",OffsetDateTime::class.java),r.getString("referencia_verificacion"),r.getString("referencia_reembolso"),r.getString("observacion_pago"))
     }
 
     /** Un cliente solo puede leer solicitudes asociadas a su propia institucion. */
@@ -164,6 +178,7 @@ class ReservaController(private val jdbc: JdbcTemplate, private val auth: Usuari
     fun crear(authentication: Authentication, @Valid @RequestBody req: ReservaRequest): ReservaResponse {
         val perfil = auth.perfil(authentication.name)
         val cliente = perfil.clienteInstitucionalId ?: throw ConflictoException("Debe ingresar con cuenta institucional")
+        if (req.solicitarCotizacion && perfil.rol != "CLIENTE") throw AccessDeniedException("Solo el cliente puede solicitar una cotización")
         val metodo = req.metodoPago.trim().uppercase()
         if (metodo !in metodos) throw IllegalArgumentException("Metodo de pago no reconocido")
         if (req.modalidad !in setOf("SIN_CONDUCTOR","CON_CONDUCTOR")) throw IllegalArgumentException("Modalidad no reconocida")
@@ -204,6 +219,16 @@ class ReservaController(private val jdbc: JdbcTemplate, private val auth: Usuari
             req.devolucion.trim(), req.pasajeros, req.observaciones?.trim(), importe,req.requiereBlindaje)!!
         // El estado PENDIENTE no indica un cobro: solo registra la preferencia del cliente.
         jdbc.update("INSERT INTO pagos_reserva(solicitud_id,metodo) VALUES(?,?)", id, metodo)
+        // La solicitud y su borrador se guardan en la misma transaccion. El precio
+        // procede del servidor y no de una cifra enviada por el navegador.
+        if (req.solicitarCotizacion) {
+            val cotizacionId = jdbc.queryForObject("""INSERT INTO cotizaciones
+                (solicitud_id,numero_version,valida_hasta,subtotal,valor_total,creado_por_usuario_id)
+                VALUES (?,1,CURRENT_DATE+15,?,?,?) RETURNING id""",Long::class.java,id,importe,importe,perfil.id)!!
+            jdbc.update("""INSERT INTO detalles_cotizacion(cotizacion_id,concepto,cantidad,valor_unitario)
+                VALUES (?,'Alquiler del periodo solicitado',1,?)""",cotizacionId,importe)
+            jdbc.update("UPDATE solicitudes SET estado='COTIZADA',actualizado_en=NOW() WHERE id=?",id)
+        }
         return buscar(id)
     }
 
@@ -291,28 +316,36 @@ class ReservaController(private val jdbc: JdbcTemplate, private val auth: Usuari
         return buscar(id)
     }
 
+    /** Una propuesta no aceptada impide confirmar el alquiler y anticipar su pago. */
+    private fun cotizacionPendiente(id: Long): Boolean {
+        val estado = jdbc.query("SELECT estado FROM cotizaciones WHERE solicitud_id=? ORDER BY numero_version DESC LIMIT 1", { rs,_ -> rs.getString(1) },id).firstOrNull()
+        return estado != null && estado != "ACEPTADA"
+    }
+
     /** El cliente informa referencia de transferencia; administracion debe validarla. */
     @PostMapping("/api/solicitudes/{id}/pago/reportar")
     @Transactional
     fun reportarPago(@PathVariable id: Long, authentication: Authentication,
                      @Valid @RequestBody req: ReportarPagoRequest): ReservaResponse {
         val perfil = auth.perfil(authentication.name)
-        val filas = jdbc.query("""SELECT s.cliente_institucional_id,s.estado,p.metodo,p.estado
+        val filas = jdbc.query("""SELECT s.cliente_institucional_id,s.estado,p.metodo,p.estado,s.valor_estimado
             FROM solicitudes s JOIN pagos_reserva p ON p.solicitud_id=s.id
             WHERE s.id=? FOR UPDATE OF s,p""", { r, _ ->
-            PagoInfo(r.getLong(1), r.getString(2), r.getString(3), r.getString(4))
+            PagoInfo(r.getLong(1), r.getString(2), r.getString(3), r.getString(4),r.getBigDecimal(5))
         }, id)
         val pago = filas.firstOrNull() ?: throw RecursoNoEncontradoException("Pago no encontrado")
-        if (perfil.clienteInstitucionalId != pago.cliente) throw AccessDeniedException("Solicitud ajena")
+        if (perfil.rol != "CLIENTE" || perfil.clienteInstitucionalId != pago.cliente) throw AccessDeniedException("Solicitud ajena")
+        if (pago.reserva !in setOf("CONFIRMADA","ASIGNADA"))
+            throw ConflictoException("Espere la confirmación administrativa antes de informar el pago")
         if (pago.metodo != "TRANSFERENCIA") throw ConflictoException("Solo las transferencias admiten referencia")
         if (pago.reserva in setOf("RECHAZADA", "CANCELADA", "FINALIZADA", "ARCHIVADA"))
             throw ConflictoException("Esta solicitud esta cerrada")
         if (pago.estado in setOf("VERIFICADO", "REEMBOLSO_PENDIENTE", "REEMBOLSADO"))
             throw ConflictoException("El pago ya fue verificado o esta en reembolso")
-        val referencia = req.referencia.trim()
-        if (referencia.length !in 4..120) throw IllegalArgumentException("Referencia de 4 a 120 caracteres")
-        jdbc.update("""UPDATE pagos_reserva SET referencia=?,estado='REPORTADO',actualizado_en=NOW()
-            WHERE solicitud_id=?""", referencia, id)
+        val referencia = ReglasPago.referencia(req.referencia)
+        val monto = ReglasPago.montoCompleto(req.monto,pago.total)
+        jdbc.update("""UPDATE pagos_reserva SET referencia=?,monto_reportado=?,reportado_en=NOW(),
+            estado='REPORTADO',observacion=NULL,actualizado_en=NOW() WHERE solicitud_id=?""", referencia,monto,id)
         return buscar(id)
     }
 
@@ -323,24 +356,41 @@ class ReservaController(private val jdbc: JdbcTemplate, private val auth: Usuari
                     @Valid @RequestBody req: EstadoPagoRequest): ReservaResponse {
         val perfil = auth.perfil(authentication.name)
         if (perfil.rol != ADMIN_ROLE) throw AccessDeniedException("Solo administracion")
-        val pago = jdbc.query("""SELECT p.metodo,p.estado,s.estado FROM pagos_reserva p
-            JOIN solicitudes s ON s.id=p.solicitud_id WHERE s.id=? FOR UPDATE OF s,p""", { r, _ ->
-            Triple(r.getString(1), r.getString(2), r.getString(3))
-        }, id).firstOrNull() ?: throw RecursoNoEncontradoException("Pago no encontrado")
+        val pago = jdbc.query("""SELECT p.metodo,p.estado,s.estado,s.valor_estimado,p.monto_verificado
+            FROM pagos_reserva p JOIN solicitudes s ON s.id=p.solicitud_id WHERE s.id=? FOR UPDATE OF s,p""", { r,_ ->
+            PagoRevision(r.getString(1),r.getString(2),r.getString(3),r.getBigDecimal(4),r.getBigDecimal(5))
+        },id).firstOrNull() ?: throw RecursoNoEncontradoException("Pago no encontrado")
         val nuevo = req.estado.trim().uppercase()
-        val permitidos = when (nuevo) {
-            "VERIFICADO" -> pago.second in setOf("PENDIENTE", "REPORTADO", "RECHAZADO") &&
-                (pago.first != "TRANSFERENCIA" || pago.second == "REPORTADO") &&
-                pago.third !in setOf("CANCELADA", "RECHAZADA", "ARCHIVADA")
-            "RECHAZADO" -> pago.second == "REPORTADO"
-            "REEMBOLSADO" -> pago.second == "REEMBOLSO_PENDIENTE"
-            else -> false
+        val observacion = req.observacion?.trim()
+        when(nuevo) {
+            "VERIFICADO" -> {
+                val conciliacion = pago.reserva in setOf("CANCELADA","RECHAZADA","ARCHIVADA") && pago.metodo=="TRANSFERENCIA" && pago.estado=="REPORTADO"
+                if (!conciliacion && pago.reserva !in setOf("CONFIRMADA","ASIGNADA"))
+                    throw ConflictoException("Confirme la reserva antes de verificar un pago")
+                if (pago.estado !in setOf("PENDIENTE","REPORTADO","RECHAZADO") || (pago.metodo=="TRANSFERENCIA" && pago.estado!="REPORTADO"))
+                    throw ConflictoException("El pago no admite verificación en su estado actual")
+                val monto=ReglasPago.montoCompleto(req.monto,pago.total)
+                val referencia=ReglasPago.referencia(req.referencia)
+                val destino=if(conciliacion) "REEMBOLSO_PENDIENTE" else "VERIFICADO"
+                jdbc.update("""UPDATE pagos_reserva SET estado=?,monto_verificado=?,referencia_verificacion=?,
+                    verificado_en=NOW(),verificado_por=?,observacion=?,revisado_por=?,actualizado_en=NOW() WHERE solicitud_id=?""",
+                    destino,monto,referencia,perfil.id,observacion,perfil.id,id)
+            }
+            "RECHAZADO" -> {
+                if(pago.estado!="REPORTADO") throw ConflictoException("Solo se rechaza una transferencia reportada")
+                require((observacion?.length ?: 0) >= 4) { "Indique el motivo del rechazo" }
+                jdbc.update("UPDATE pagos_reserva SET estado='RECHAZADO',observacion=?,revisado_por=?,actualizado_en=NOW() WHERE solicitud_id=?",observacion,perfil.id,id)
+            }
+            "REEMBOLSADO" -> {
+                if(pago.estado!="REEMBOLSO_PENDIENTE") throw ConflictoException("No hay un reembolso pendiente")
+                val monto=if(pago.verificado!=null) ReglasPago.montoCompleto(req.monto,pago.verificado) else ReglasPago.montoValido(req.monto)
+                val referencia=ReglasPago.referencia(req.referencia)
+                jdbc.update("""UPDATE pagos_reserva SET estado='REEMBOLSADO',monto_reembolsado=?,referencia_reembolso=?,
+                    reembolsado_en=NOW(),reembolsado_por=?,observacion=?,revisado_por=?,actualizado_en=NOW() WHERE solicitud_id=?""",
+                    monto,referencia,perfil.id,observacion,perfil.id,id)
+            }
+            else -> throw ConflictoException("Transición de pago no permitida")
         }
-        if (!permitidos) throw ConflictoException("Transicion de pago no permitida")
-        if (nuevo == "REEMBOLSADO" && (req.observacion?.trim()?.length ?: 0) < 4)
-            throw IllegalArgumentException("Describa la devolucion manual del dinero")
-        jdbc.update("""UPDATE pagos_reserva SET estado=?,observacion=?,revisado_por=?,actualizado_en=NOW()
-            WHERE solicitud_id=?""", nuevo, req.observacion?.trim(), perfil.id, id)
         return buscar(id)
     }
 
@@ -371,8 +421,7 @@ class ReservaController(private val jdbc: JdbcTemplate, private val auth: Usuari
             throw ConflictoException("Transicion no permitida: ${info.estado} a $destino")
         if (destino == "CONFIRMADA") {
             // Si hay una propuesta activa, la última versión debe haber sido aceptada.
-            val propuesta = jdbc.query("SELECT estado FROM cotizaciones WHERE solicitud_id=? ORDER BY numero_version DESC LIMIT 1", { rs,_ -> rs.getString(1) },id).firstOrNull()
-            if (propuesta != null && propuesta != "ACEPTADA")
+            if (cotizacionPendiente(id))
                 throw ConflictoException("La cotizacion debe aceptarse antes de confirmar")
         }
         if (destino == "EN_SERVICIO") {
@@ -424,7 +473,8 @@ class ReservaController(private val jdbc: JdbcTemplate, private val auth: Usuari
     private data class VehicleInfo(val tarifa: BigDecimal, val pasajeros: Int,
                                    val estado: String, val activo: Boolean, val clienteActivo: Boolean)
     /** Datos de propiedad y estado utilizados al reportar un pago. */
-    private data class PagoInfo(val cliente: Long, val reserva: String, val metodo: String, val estado: String)
+    private data class PagoInfo(val cliente: Long, val reserva: String, val metodo: String, val estado: String, val total: BigDecimal)
+    private data class PagoRevision(val metodo:String,val estado:String,val reserva:String,val total:BigDecimal,val verificado:BigDecimal?)
     /** Proyección del periodo, pago y modalidad necesarios para una transición segura. */
     private data class EstadoInfo(val estado: String, val fin: OffsetDateTime,
                                   val metodoPago: String?, val estadoPago: String?, val inicio: OffsetDateTime, val vehiculoId: Long, val modalidad: String, val conductorId: Long?)

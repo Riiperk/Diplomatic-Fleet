@@ -61,6 +61,8 @@ export const activarConductor = (id:number,activo:boolean) => api<Conductor>(`/a
 export const cotizaciones = () => api<Cotizacion[]>('/api/admin/cotizaciones')
 /** Genera una propuesta a partir del importe de la solicitud. */
 export const crearCotizacion = (data:CotizacionPayload) => api<Cotizacion>('/api/admin/cotizaciones',{method:'POST',body:JSON.stringify(data)})
+/** Modifica exclusivamente los datos editables de una propuesta no publicada. */
+export const editarCotizacion=(id:number,data:{validaHasta:string;observaciones:string|null})=>api<Cotizacion>('/api/admin/cotizaciones/'+id+'/borrador',{method:'PATCH',body:JSON.stringify(data)})
 /** Publica o anula una propuesta administrativa. */
 export const cambiarCotizacion = (id:number,estado:string) => api<Cotizacion>(`/api/admin/cotizaciones/${id}/estado`,{method:'PATCH',body:JSON.stringify({estado})})
 /** Consulta cuentas sin exponer hashes. */

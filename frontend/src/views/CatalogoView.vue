@@ -29,6 +29,9 @@ const fin = ref(proximaFecha(3))
 const cars = ref<Coche[]>([])
 const cargando = ref(false)
 const error = ref('')
+const periodoTocado = ref(false)
+const errorTarjeta = ref<{id:number;mensaje:string}|null>(null)
+const cotizando = ref(false)
 const confirmacion = ref('')
 const seleccion = ref<Coche | null>(null)
 const guardando = ref(false)
@@ -87,12 +90,21 @@ const consultaVigente = computed(() => periodoConsultado.value === periodoActual
 watch(periodoActual, () => {
   confirmacion.value = ''
   error.value = ''
+  errorTarjeta.value = null
+  periodoTocado.value = true
   seleccion.value = null
 })
 
 const categorias = computed(() => Array.from(new Set(cars.value.map(c => c.categoria))))
 const dias = computed(() => inicio.value && fin.value ? diasEntre(isoFecha(inicio.value), isoFecha(fin.value)) : 0)
-const fechasValidas = computed(() => Boolean(inicio.value) && Boolean(fin.value) && fin.value > inicio.value)
+const errorFechas = computed(() => {
+  if (!inicio.value || !fin.value) return 'Complete las dos fechas.'
+  if (inicio.value < proximaFecha(1)) return 'La recogida debe ser a partir de mañana.'
+  if (fin.value <= inicio.value) return 'La fecha de devolución debe ser posterior a la fecha de recogida.'
+  if (diasEntre(isoFecha(inicio.value),isoFecha(fin.value)) > 90) return 'El periodo máximo es de 90 días.'
+  return ''
+})
+const fechasValidas = computed(() => !errorFechas.value)
 const tarifaMinima = computed(() => visibles.value.length ? Math.min(...visibles.value.map(c => c.tarifaDiaria)) : 0)
 const capacidadMaxima = computed(() => visibles.value.length ? Math.max(...visibles.value.map(c => c.pasajeros)) : 0)
 const categoriasActivas = computed(() => new Set(visibles.value.map(c => c.categoria)).size)
@@ -100,10 +112,9 @@ const categoriasActivas = computed(() => new Set(visibles.value.map(c => c.categ
 /** Consulta la flota disponible para el periodo seleccionado. */
 async function cargar() {
   if (cargando.value) return
-  if (!fechasValidas.value) {
-    error.value = 'La fecha de devolución debe ser posterior a la fecha de recogida.'
-    return
-  }
+  periodoTocado.value = true
+  error.value = ''
+  if (!fechasValidas.value) return
 
   const periodo = periodoActual.value
   cargando.value = true
@@ -129,7 +140,8 @@ async function cargar() {
  * Solicita autenticación antes de abrir el formulario de reserva.
  * Solo CLIENTE puede crear solicitudes desde el catálogo público.
  */
-function reservar(c: Coche) {
+function reservar(c: Coche, solicitarCotizacion = false) {
+  errorTarjeta.value = null
   if (!consultaVigente.value) {
     error.value = 'Consulte la disponibilidad para las fechas seleccionadas.'
     return
@@ -139,9 +151,10 @@ function reservar(c: Coche) {
     return
   }
   if (sesion()?.rol !== 'CLIENTE') {
-    error.value = 'La reserva debe hacerse con una cuenta de cliente institucional.'
+    errorTarjeta.value = {id:c.id,mensaje:'Ingrese con una cuenta de cliente institucional para continuar.'}
     return
   }
+  cotizando.value = solicitarCotizacion
   seleccion.value = c
   pasajeros.value = Math.max(1, capacidad.value)
   observaciones.value = ''
@@ -166,8 +179,18 @@ async function confirmar() {
       metodoPago: metodoPago.value,
       modalidad: modalidad.value,
       requiereBlindaje: requiereBlindaje.value,
+      solicitarCotizacion: cotizando.value,
     })
     seleccion.value = null
+    if (cotizando.value) {
+      if (r.estadoCotizacion !== 'BORRADOR') {
+        await cargar()
+        confirmacion.value = 'Solicitud ' + r.codigo + ' registrada, pero el servidor no ha generado el borrador. Consulte administración y no repita la solicitud.'
+        return
+      }
+      await router.push({path:'/mis-cotizaciones',query:{creada:r.codigo}})
+      return
+    }
     await cargar()
     confirmacion.value = `Solicitud ${r.codigo} creada correctamente. Importe estimado: ${pesos(r.valorEstimado)}. Pago externo pendiente: consulta su estado en Mis reservas.`
   } catch (e) {
@@ -205,19 +228,22 @@ onMounted(()=>{void cargar();void api<string[]>('/api/public/ubicaciones',{},tru
     <div class="df-motion-band" aria-hidden="true"><div></div></div>
 
     <main class="df-wrap" id="flota">
-      <form class="df-filter df-filter-hero" @submit.prevent="cargar">
+      <form class="df-filter df-filter-hero df-periodo" novalidate @submit.prevent="cargar">
         <div>
           <label for="inicio">Recogida</label>
           <input id="inicio" v-model="inicio" type="date" :min="proximaFecha(1)" :disabled="cargando" required />
         </div>
         <div>
           <label for="fin">Devolución</label>
-          <input id="fin" v-model="fin" type="date" :min="inicio" :disabled="cargando" required />
+          <input id="fin" v-model="fin" type="date" :min="inicio" :disabled="cargando" :aria-invalid="periodoTocado && !!errorFechas" aria-describedby="error-periodo" required />
         </div>
         <button class="df-button" :disabled="cargando" type="submit">
           <span v-if="cargando" class="df-inline-spinner" aria-hidden="true"></span>
           {{ cargando ? 'Consultando…' : 'Ver disponibilidad ↗' }}
         </button>
+        <p v-if="periodoTocado && errorFechas" id="error-periodo" class="df-alert error df-periodo-error" role="alert">{{errorFechas}}</p>
+        <p v-else-if="error" id="error-periodo" class="df-alert error df-periodo-error" role="alert">{{error}}</p>
+        <p v-else id="error-periodo" class="df-periodo-error df-meta">Elija las fechas del servicio. La cotización no realiza ningún cobro.</p>
       </form>
 
       <section class="df-intro-ribbon" aria-label="Resumen del catálogo">
@@ -290,7 +316,6 @@ onMounted(()=>{void cargar();void api<string[]>('/api/public/ubicaciones',{},tru
         <button type="button" class="df-button light mini df-reset-filters" @click="limpiarFiltros">Restablecer filtros</button>
       </div>
 
-      <p v-if="error" class="df-alert error" role="alert">{{ error }}</p>
       <p v-if="confirmacion" class="df-alert ok" role="status">
         {{ confirmacion }} <RouterLink to="/mis-reservas"><u>Ver mis reservas</u></RouterLink>
       </p>
@@ -331,8 +356,12 @@ onMounted(()=>{void cargar();void api<string[]>('/api/public/ubicaciones',{},tru
                 <strong>{{ pesos(car.tarifaDiaria) }}</strong>
                 <small>por día · {{ pesos(car.tarifaDiaria * dias) }} estimado</small>
               </div>
-              <button class="df-button mini" @click="reservar(car)">Solicitar ↗</button>
+              <div class="df-catalog-actions">
+                <button class="df-button mini" type="button" @click="reservar(car,true)">Cotizar ↗</button>
+                <button class="df-button light mini" type="button" @click="reservar(car,false)">Reservar</button>
+              </div>
             </div>
+            <p v-if="errorTarjeta?.id===car.id" class="df-alert error" role="alert">{{errorTarjeta.mensaje}}</p>
           </div>
         </article>
       </div>
@@ -349,7 +378,8 @@ onMounted(()=>{void cargar();void api<string[]>('/api/public/ubicaciones',{},tru
     </footer>
 
     <DialogoBase v-if="seleccion" :titulo="seleccion.marca + ' ' + seleccion.modelo" :ocupado="guardando" @cerrar="seleccion = null">
-      <span class="df-kicker">02 / CONFIRMAR SOLICITUD</span>
+      <span class="df-kicker">{{cotizando ? '02 / SOLICITAR COTIZACIÓN' : '02 / SOLICITAR RESERVA'}}</span>
+      <p v-if="cotizando" class="df-meta">Enviaremos una propuesta preliminar a administración. El vehículo quedará solicitado para estas fechas hasta resolver la solicitud. Puede consultar el estado y aceptar o rechazar la propuesta en Mis cotizaciones. No se confirma ni se cobra el alquiler todavía.</p>
       <p class="df-meta">{{ inicio }} → {{ fin }} · {{ dias }} día(s) · {{ pesos(seleccion.tarifaDiaria * dias) }} estimados.</p>
       <form @submit.prevent="confirmar">
         <div class="df-fields">
@@ -382,15 +412,16 @@ onMounted(()=>{void cargar();void api<string[]>('/api/public/ubicaciones',{},tru
           </select>
         </div>
         <div class="df-field">
-          <label>Método de pago previsto *</label>
+          <label>Método de pago previsto (sin cobro) *</label>
           <select v-model="metodoPago" required>
             <option value="TRANSFERENCIA">Transferencia bancaria</option>
             <option value="EFECTIVO">Efectivo en la entrega</option>
             <option value="TARJETA_PRESENCIAL">Tarjeta presencial con el operador</option>
           </select>
         </div>
-        <p class="df-meta">
-          El pago queda <b>PENDIENTE</b> hasta que administración compruebe su recepción.
+        <p v-if="cotizando" class="df-meta">Este dato solo indica su preferencia. No informe transferencias ni realice pagos hasta aceptar la cotización y coordinar con administración.</p>
+        <p v-else class="df-meta">
+          El pago queda <b>PENDIENTE</b>. Espere la confirmación administrativa antes de efectuar el pago externo.
           Transferencias: solicite los datos bancarios al proveedor del servicio; después podrá
           informar la referencia en Mis reservas. Para tarjeta, <b>no introduzca números ni códigos CVV en esta página</b>.
           No se realiza ningún cargo en línea.
@@ -398,7 +429,7 @@ onMounted(()=>{void cargar();void api<string[]>('/api/public/ubicaciones',{},tru
         <p v-if="errorDialogo" class="df-alert error" role="alert">{{ errorDialogo }}</p>
         <button class="df-button" type="submit" :disabled="guardando">
           <span v-if="guardando" class="df-inline-spinner" aria-hidden="true"></span>
-          {{ guardando ? 'Enviando…' : 'Crear solicitud →' }}
+          {{ guardando ? 'Enviando…' : cotizando ? 'Enviar solicitud de cotización →' : 'Crear solicitud de reserva →' }}
         </button>
       </form>
     </DialogoBase>

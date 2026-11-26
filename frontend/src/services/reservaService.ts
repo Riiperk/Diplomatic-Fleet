@@ -9,8 +9,8 @@ export type EstadoReserva='RECIBIDA'|'EN_REVISION'|'COTIZADA'|'PENDIENTE_APROBAC
 /** Estado del pago externo; no implica un cargo por la plataforma. */
 export type MetodoPago = 'TRANSFERENCIA' | 'EFECTIVO' | 'TARJETA_PRESENCIAL'
 export type EstadoPago = 'PENDIENTE' | 'REPORTADO' | 'VERIFICADO' | 'RECHAZADO' | 'REEMBOLSO_PENDIENTE' | 'REEMBOLSADO'
-export interface Reserva {id:number;codigo:string;vehiculoId:number|null;vehiculo:string|null;cliente:string;inicio:string;fin:string;recogida:string;devolucion:string;pasajeros:number;estado:EstadoReserva;valorEstimado:number;metodoPago:MetodoPago|null;estadoPago:EstadoPago|null;referenciaPago:string|null;fechaInicioReal:string|null;fechaFinReal:string|null;motivoCierreAnticipado:string|null;modalidad:string;conductorProfesionalId:number|null;conductor:string|null;motivoInicioAnticipado:string|null;editable:boolean;requiereBlindaje?:boolean}
-export interface CrearReserva {vehiculoId:number;inicio:string;fin:string;recogida:string;devolucion:string;pasajeros:number;observaciones:string;metodoPago:MetodoPago;modalidad?:'SIN_CONDUCTOR'|'CON_CONDUCTOR';requiereBlindaje?:boolean}
+export interface Reserva {id:number;codigo:string;vehiculoId:number|null;vehiculo:string|null;cliente:string;inicio:string;fin:string;recogida:string;devolucion:string;pasajeros:number;estado:EstadoReserva;valorEstimado:number;metodoPago:MetodoPago|null;estadoPago:EstadoPago|null;referenciaPago:string|null;fechaInicioReal:string|null;fechaFinReal:string|null;motivoCierreAnticipado:string|null;modalidad:string;conductorProfesionalId:number|null;conductor:string|null;motivoInicioAnticipado:string|null;editable:boolean;requiereBlindaje?:boolean;estadoCotizacion?:string|null;montoReportado?:number|null;montoVerificado?:number|null;montoReembolsado?:number|null;reportadoEn?:string|null;verificadoEn?:string|null;reembolsadoEn?:string|null;referenciaVerificacion?:string|null;referenciaReembolso?:string|null;observacionPago?:string|null}
+export interface CrearReserva {vehiculoId:number;inicio:string;fin:string;recogida:string;devolucion:string;pasajeros:number;observaciones:string;metodoPago:MetodoPago;modalidad?:'SIN_CONDUCTOR'|'CON_CONDUCTOR';requiereBlindaje?:boolean;solicitarCotizacion?:boolean}
 /** Consulta las unidades libres en el intervalo (sin autenticación). */
 export const catalogo=(inicio?:string,fin?:string)=>api<Coche[]>('/api/public/vehiculos'+(inicio&&fin?'?'+new URLSearchParams({inicio,fin}):''),{},true)
 /** Envía una solicitud de alquiler al backend bajo la sesión del cliente. */
@@ -25,9 +25,9 @@ export const cancelarReserva=(id:number,motivo:string)=>api<Reserva>(`/api/solic
 /** Cierra anticipadamente solo con evidencia/observacion de devolucion efectiva. */
 export const cambiarEstado=(id:number,estado:string,motivoCierre?:string,motivoInicio?:string)=>api<Reserva>(`/api/admin/solicitudes/${id}/estado`,{method:'PATCH',body:JSON.stringify({estado,motivoCierre,motivoInicio})})
 /** El cliente comunica la referencia; no constituye comprobante bancario validado. */
-export const reportarPago=(id:number,referencia:string)=>api<Reserva>(`/api/solicitudes/${id}/pago/reportar`,{method:'POST',body:JSON.stringify({referencia})})
+export const reportarPago=(id:number,referencia:string,monto:number)=>api<Reserva>(`/api/solicitudes/${id}/pago/reportar`,{method:'POST',body:JSON.stringify({referencia,monto})})
 /** Administracion revisa el pago externo o registra un reembolso ya efectuado. */
-export const revisarPago=(id:number,estado:string,observacion?:string)=>api<Reserva>(`/api/admin/solicitudes/${id}/pago`,{method:'PATCH',body:JSON.stringify({estado,observacion})})
+export const revisarPago=(id:number,estado:string,observacion?:string,monto?:number,referencia?:string)=>api<Reserva>(`/api/admin/solicitudes/${id}/pago`,{method:'PATCH',body:JSON.stringify({estado,observacion,monto,referencia})})
 export const nombreMetodo=(metodo:MetodoPago|null)=>({TRANSFERENCIA:'Transferencia bancaria',EFECTIVO:'Efectivo al recibir',TARJETA_PRESENCIAL:'Tarjeta presencial'} as Record<MetodoPago,string>)[metodo as MetodoPago]||'No registrado'
 export const nombrePago=(estado:EstadoPago|null)=>(estado||'NO REGISTRADO').replaceAll('_',' ')
 /** Formatea números de manera legible para Colombia; no modifica el valor. */
@@ -53,4 +53,13 @@ export function fechaBogota(iso:string):string {
   const partes=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bogota',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(iso))
   const parte=(tipo:string)=>partes.find(p=>p.type===tipo)?.value ?? ''
   return `${parte('year')}-${parte('month')}-${parte('day')}`
+}
+
+/** Solo se habilita el pago de solicitudes directas o con una propuesta aceptada. */
+export function puedePagarReserva(r:Reserva):boolean {
+  return !['RECIBIDA','EN_REVISION','COTIZADA','PENDIENTE_APROBACION'].includes(r.estado) || !r.estadoCotizacion || r.estadoCotizacion==='ACEPTADA'
+}
+export function nombreCotizacion(estado:string|null|undefined):string {
+  const nombres:Record<string,string>={BORRADOR:'En preparación',ENVIADA:'Pendiente de decisión',ACEPTADA:'Aceptada',RECHAZADA:'Rechazada',VENCIDA:'Vencida',ANULADA:'Anulada'}
+  return estado ? (nombres[estado] ?? estado) : 'Sin cotización'
 }

@@ -141,7 +141,7 @@ class AccesoYAsignacionesController(
         val cliente=auth.perfil(authentication.name).clienteInstitucionalId ?: throw AccessDeniedException("Sin institución")
         return jdbc.queryForList("""SELECT c.id,c.solicitud_id,s.codigo,c.numero_version,c.estado,c.valida_hasta::text AS valida_hasta,
             c.subtotal,c.impuestos,c.descuentos,c.valor_total,c.observaciones,s.estado AS estado_reserva,
-            (c.estado='ENVIADA' AND c.valida_hasta>=CURRENT_DATE AND s.estado IN ('RECIBIDA','EN_REVISION','COTIZADA','PENDIENTE_APROBACION')) AS decidible
+            (c.estado='ENVIADA' AND c.valida_hasta>=CURRENT_DATE AND s.estado IN ('RECIBIDA','EN_REVISION','COTIZADA','PENDIENTE_APROBACION') AND c.numero_version=(SELECT MAX(v.numero_version) FROM cotizaciones v WHERE v.solicitud_id=s.id)) AS decidible
             FROM cotizaciones c JOIN solicitudes s ON s.id=c.solicitud_id
             WHERE s.cliente_institucional_id=? AND c.estado<>'BORRADOR' ORDER BY c.id DESC""",cliente)
     }

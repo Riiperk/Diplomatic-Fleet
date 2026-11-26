@@ -4,14 +4,15 @@ import {useRoute} from 'vue-router'
 import {api,logout,sesion} from '@/services/api'
 import {useRouter} from 'vue-router'
 import DialogoBase from '@/components/layout/DialogoBase.vue'
+import PasswordInput from '@/components/login/PasswordInput.vue'
 import {crearCuenta,type CuentaNueva} from '@/services/operacionesService'
 import DemoLayout from '@/components/layout/DemoLayout.vue'
 import {listarVehiculos, type VehiculoResponse} from '@/services/vehiculoService'
 import {listarClientes, type ClienteInstitucionalResponse} from '@/services/clienteService'
-import {todasReservas, catalogo, pesos, proximaFecha, isoFecha, type Coche, type Reserva} from '@/services/reservaService'
+import {todasReservas, catalogo, pesos, proximaFecha, isoFecha, fecha, nombreCotizacion, type Coche, type Reserva} from '@/services/reservaService'
 import {
   documentos, crearDocumento, editarDocumento, mantenimientos, crearMantenimiento, cambiarMantenimiento,
-  conductores, crearConductor, activarConductor, cotizaciones, crearCotizacion, cambiarCotizacion,
+  conductores, crearConductor, activarConductor, cotizaciones, crearCotizacion, cambiarCotizacion, editarCotizacion,
   usuarios, activarUsuario, reporte, type Documento, type Mantenimiento, type Conductor,
   type Cotizacion, type UsuarioSeguro, type Reporte,
 } from '@/services/operacionesService'
@@ -67,6 +68,26 @@ async function altaCuenta(){saving.value=true;error.value='';success.value=''
   await crearCuenta(payload);cuenta.password='';cuenta.nombre='';cuenta.apellido='';cuenta.correo='';cuenta.numeroLicencia='';await cargar();success.value='Cuenta creada correctamente.'
  }catch(e){error.value=e instanceof Error?e.message:'No se pudo crear la cuenta'}finally{saving.value=false}}
 const nuevaQ=reactive({solicitudId:0,validaHasta:proximaFecha(15),observaciones:''})
+const solicitudFiltro=computed(()=>Number(route.query.solicitud)||0)
+const abiertasQ=computed(()=>solicitudes.value.filter(s=>['RECIBIDA','EN_REVISION','COTIZADA','PENDIENTE_APROBACION'].includes(s.estado)))
+const solicitudDe=(q:Cotizacion)=>solicitudes.value.find(s=>s.id===q.solicitud_id)
+function periodoQ(q:Cotizacion){const r=solicitudDe(q);return r?fecha(r.inicio)+' – '+fecha(r.fin):'—'}
+const cotizables=computed(()=>abiertasQ.value.filter(s=>!rowsQ.value.some(q=>q.solicitud_id===s.id&&(q.estado==='ACEPTADA'||(['BORRADOR','ENVIADA'].includes(q.estado)&&q.valida_hasta>=hoy)))))
+const errorCotizar=ref(''),errorFila=ref<{id:number;mensaje:string}|null>(null)
+const cotizacionEditando=ref<Cotizacion|null>(null),datosEdicion=reactive({validaHasta:'',observaciones:''}),errorEdicion=ref('')
+const cotizacionesFiltradas=computed(()=>rowsQ.value.filter(q=>(!solicitudFiltro.value||q.solicitud_id===solicitudFiltro.value)&&JSON.stringify(q).toLowerCase().includes(buscar.value.trim().toLowerCase())))
+function revisarBorrador(q:Cotizacion){cotizacionEditando.value=q;datosEdicion.validaHasta=q.valida_hasta<hoy?proximaFecha(15):q.valida_hasta;datosEdicion.observaciones=q.observaciones??'';errorEdicion.value=''}
+async function guardarBorrador(publicar:boolean){
+  if(!cotizacionEditando.value||saving.value)return
+  const id=cotizacionEditando.value.id;saving.value=true;errorEdicion.value=''
+  try{await editarCotizacion(id,{validaHasta:datosEdicion.validaHasta,observaciones:datosEdicion.observaciones||null});if(publicar)await cambiarCotizacion(id,'ENVIADA');cotizacionEditando.value=null;await cargar();success.value=publicar?'Cotización publicada. El cliente ya puede decidir.':'Borrador actualizado.'}
+  catch(e){errorEdicion.value=e instanceof Error?e.message:'No fue posible actualizar la cotización.'}finally{saving.value=false}
+}
+async function accionCotizacion(q:Cotizacion){
+  if(saving.value||!window.confirm('¿Anular esta cotización? La solicitud podrá recibir otra propuesta.'))return
+  errorFila.value=null;saving.value=true
+  try{await cambiarCotizacion(q.id,'ANULADA');await cargar();success.value='Cotización anulada.'}catch(e){errorFila.value={id:q.id,mensaje:e instanceof Error?e.message:'No se pudo anular.'}}finally{saving.value=false}
+}
 
 /** Recupera registros reales según la ruta y carga listas auxiliares. */
 async function cargar():Promise<void>{
@@ -80,7 +101,8 @@ async function cargar():Promise<void>{
       case 'validacion-conductor':
         [rowsC.value,clientes.value]=await Promise.all([conductores(),listarClientes()]);break
       case 'cotizaciones':
-        [rowsQ.value,solicitudes.value]=await Promise.all([cotizaciones(),todasReservas()]);break
+        [rowsQ.value,solicitudes.value]=await Promise.all([cotizaciones(),todasReservas()]);
+        if(cotizables.value.some(s=>s.id===solicitudFiltro.value))nuevaQ.solicitudId=solicitudFiltro.value;break
       case 'usuarios': [rowsU.value,clientes.value]=await Promise.all([usuarios(),listarClientes()]);break
       case 'reportes': resumen.value=await reporte();break
       case 'disponibilidad': await consultarDisponibilidad();break
@@ -100,7 +122,8 @@ const filtrados=computed(()=>{
 
 /** Envía solo el formulario pertinente al módulo actual. */
 async function guardar():Promise<void>{
-  saving.value=true;error.value='';success.value=''
+  if(saving.value)return
+  saving.value=true;error.value='';errorCotizar.value='';success.value=''
   try{
     if(modulo.value==='documentos'){
       const payload={vehiculoId:nuevoDoc.vehiculoId,tipoDocumento:nuevoDoc.tipoDocumento,
@@ -125,11 +148,12 @@ async function guardar():Promise<void>{
       nuevoC.nombreCompleto='';nuevoC.numeroDocumento='';nuevoC.numeroLicencia='';nuevoC.correo=''
     }
     if(modulo.value==='cotizaciones'){
+      if(!cotizables.value.some(s=>s.id===nuevaQ.solicitudId))throw new Error('Seleccione una solicitud disponible para cotizar.')
       await crearCotizacion({solicitudId:nuevaQ.solicitudId,validaHasta:nuevaQ.validaHasta,
-        observaciones:nuevaQ.observaciones||null});nuevaQ.observaciones=''
+        observaciones:nuevaQ.observaciones||null});nuevaQ.observaciones='';nuevaQ.solicitudId=0
     }
     await cargar();success.value='El registro se guardó correctamente en PostgreSQL.'
-  }catch(e){error.value=e instanceof Error?e.message:'No se pudo registrar.'}
+  }catch(e){const msg=e instanceof Error?e.message:'No se pudo registrar.';if(modulo.value==='cotizaciones')errorCotizar.value=msg;else error.value=msg}
   finally{saving.value=false}
 }
 
@@ -164,8 +188,9 @@ async function activar(tipo:'usuario'|'conductor',id:number,activo:boolean):Prom
 
 /** Consulta disponibilidad por periodo usando el mismo endpoint del cliente. */
 async function consultarDisponibilidad():Promise<void>{
-  if(fin.value<=inicio.value){error.value='La devolución debe ser posterior a la recogida.';return}
-  rowsV.value=await catalogo(isoFecha(inicio.value),isoFecha(fin.value))
+  error.value='';rowsV.value=[]
+  if(!inicio.value||!fin.value||inicio.value<hoy||fin.value<=inicio.value){error.value='Seleccione una recogida válida y una devolución posterior.';return}
+  try{rowsV.value=await catalogo(isoFecha(inicio.value),isoFecha(fin.value))}catch(e){error.value=e instanceof Error?e.message:'No se pudo consultar la disponibilidad.'}
 }
 
 onMounted(cargar)
@@ -178,10 +203,16 @@ watch(()=>route.path,()=>{buscar.value='';success.value='';void cargar()})
       <div class="df-heading"><div><span class="df-kicker">Datos registrados</span><h2>{{titulo.titulo}}<span class="df-highlight">.</span></h2></div>
         <button type="button" class="df-button dark mini" @click="cargar">Actualizar ↗</button>
       </div>
-      <p v-if="error" role="alert" class="df-alert error">{{error}}</p>
+      <p v-if="error && modulo!=='disponibilidad'" role="alert" class="df-alert error">{{error}}</p>
       <p v-if="success" role="status" class="df-alert ok">{{success}}</p>
+      <section v-if="modulo==='cotizaciones'" class="df-quote-guide" aria-label="Flujo de cotizaciones">
+        <h3>Bandeja comercial</h3><p>El cliente solicita una cotización desde el catálogo. El sistema crea un borrador con el importe del alquiler. Revíselo y publíquelo para que el cliente pueda aceptarlo. Una propuesta aceptada permite confirmar la reserva en Solicitudes.</p>
+        <div class="df-quote-summary"><span><b>{{rowsQ.filter(q=>q.estado==='BORRADOR').length}}</b> borradores</span><span><b>{{rowsQ.filter(q=>q.estado==='ENVIADA'&&q.valida_hasta>=hoy).length}}</b> por decidir</span><span><b>{{rowsQ.filter(q=>q.estado==='ACEPTADA').length}}</b> aceptadas</span></div>
+        <RouterLink to="/solicitudes" class="df-button dark mini">Ver solicitudes</RouterLink>
+        <RouterLink v-if="solicitudFiltro" to="/cotizaciones" class="df-button light mini" @click="nuevaQ.solicitudId=0">Mostrar todas</RouterLink>
+      </section>
       <form v-if="['documentos','mantenimientos','validacion-conductor','cotizaciones'].includes(modulo)" class="df-ops-form" @submit.prevent="guardar">
-        <h3>{{modulo==='documentos'&&nuevoDoc.id?'Editar documento':'Registrar datos'}}</h3>
+        <h3>{{modulo==='cotizaciones'?'Crear propuesta para una solicitud existente':modulo==='documentos'&&nuevoDoc.id?'Editar documento':'Registrar datos'}}</h3>
         <template v-if="modulo==='documentos'">
           <label class="df-field">Vehículo<select v-model.number="nuevoDoc.vehiculoId" required><option :value="0" disabled>Seleccionar vehículo</option><option v-for="v in vehiculos" :key="v.id" :value="v.id">{{v.placa}} · {{v.marca}} {{v.modelo}}</option></select></label>
           <label class="df-field">Tipo<select v-model="nuevoDoc.tipoDocumento"><option v-for="t in ['SOAT','REVISION_TECNOMECANICA','TARJETA_PROPIEDAD','POLIZA','OTRO']" :key="t">{{t}}</option></select></label>
@@ -210,12 +241,13 @@ watch(()=>route.path,()=>{buscar.value='';success.value='';void cargar()})
           <label class="df-field">Correo<input v-model="nuevoC.correo" type="email" maxlength="150"></label>
         </template>
         <template v-else-if="modulo==='cotizaciones'">
-          <label class="df-field">Solicitud<select v-model.number="nuevaQ.solicitudId" required><option :value="0" disabled>Seleccionar solicitud</option><option v-for="s in solicitudes.filter(s=>['RECIBIDA','EN_REVISION','COTIZADA','PENDIENTE_APROBACION'].includes(s.estado)&&!rowsQ.some(q=>q.solicitud_id===s.id&&['BORRADOR','ENVIADA','ACEPTADA'].includes(q.estado)&&q.valida_hasta>=hoy))" :key="s.id" :value="s.id">{{s.codigo}} · {{s.cliente}} · {{pesos(s.valorEstimado)}}</option></select></label>
+          <label class="df-field">Solicitud<select v-model.number="nuevaQ.solicitudId" required><option :value="0" disabled>Seleccionar solicitud</option><option v-for="s in cotizables" :key="s.id" :value="s.id">{{s.codigo}} · {{s.cliente}} · {{pesos(s.valorEstimado)}}</option></select></label>
           <label class="df-field">Válida hasta<input v-model="nuevaQ.validaHasta" type="date" :min="hoy" required></label>
           <label class="df-field">Observaciones<input v-model="nuevaQ.observaciones" maxlength="1000"></label>
-          <p class="df-meta">El subtotal procede de la solicitud. No se asumen impuestos ni se procesa ningún pago.</p>
+          <p class="df-meta">{{cotizables.length?'El importe procede de la solicitud; no se efectúa ningún cobro.':'No hay solicitudes pendientes sin una propuesta activa. Los borradores automáticos aparecen en la tabla inferior.'}}</p>
+          <p v-if="errorCotizar" class="df-alert error df-ops-submit" role="alert">{{errorCotizar}}</p>
         </template>
-        <div class="df-ops-submit"><button class="df-button" type="submit" :disabled="saving">{{saving?'Guardando…':nuevoDoc.id&&modulo==='documentos'?'Guardar edición ↗':'Registrar ↗'}}</button>
+        <div class="df-ops-submit"><button class="df-button" type="submit" :disabled="saving || (modulo==='cotizaciones' && !cotizables.some(s=>s.id===nuevaQ.solicitudId))">{{saving?'Guardando…':modulo==='cotizaciones'?'Crear borrador ↗':nuevoDoc.id&&modulo==='documentos'?'Guardar edición ↗':'Registrar ↗'}}</button>
           <button v-if="nuevoDoc.id&&modulo==='documentos'" class="df-button dark" type="button" @click="nuevoDoc.id=0">Cancelar edición</button>
         </div>
       </form>
@@ -223,7 +255,7 @@ watch(()=>route.path,()=>{buscar.value='';success.value='';void cargar()})
       <form v-if="modulo==='usuarios'" class="df-ops-form" @submit.prevent="altaCuenta">
         <h3>Crear cuenta de acceso</h3>
         <label class="df-field">Nombre<input v-model="cuenta.nombre" required maxlength="70"/></label><label class="df-field">Apellido<input v-model="cuenta.apellido" required maxlength="70"/></label>
-        <label class="df-field">Correo<input v-model="cuenta.correo" required type="email" maxlength="150"/></label><label class="df-field">Contraseña temporal<input v-model="cuenta.password" required type="password" minlength="8" maxlength="72" autocomplete="new-password"/></label>
+        <label class="df-field">Correo<input v-model="cuenta.correo" required type="email" maxlength="150"/></label><label class="df-field">Contraseña temporal<PasswordInput id="alta-clave" v-model="cuenta.password" required minlength="8" maxlength="72" autocomplete="new-password"/></label>
         <label class="df-field">Rol<select v-model="cuenta.rol"><option value="CLIENTE">Cliente institucional</option><option value="ADMINISTRADOR">Administrador</option><option value="OPERACIONES">Operador de flota</option><option value="CONDUCTOR">Conductor profesional</option></select></label>
         <label v-if="cuenta.rol==='CLIENTE'" class="df-field">Institución<select v-model.number="cuenta.clienteInstitucionalId" required><option :value="0" disabled>Seleccione institución</option><option v-for="c in clientes.filter(c=>c.activo)" :key="c.id" :value="c.id">{{c.nombreEntidad}}</option></select></label>
         <template v-if="cuenta.rol==='CONDUCTOR'"><label class="df-field">Licencia<input v-model="cuenta.numeroLicencia" required maxlength="60"/></label><label class="df-field">Categoría<input v-model="cuenta.categoriaLicencia" required maxlength="20"/></label><label class="df-field">Vencimiento<input v-model="cuenta.vencimientoLicencia" required type="date" :min="hoy"/></label></template>
@@ -234,6 +266,7 @@ watch(()=>route.path,()=>{buscar.value='';success.value='';void cargar()})
           <label class="df-field">Recogida<input v-model="inicio" type="date" :min="hoy" required></label>
           <label class="df-field">Devolución<input v-model="fin" type="date" :min="inicio" required></label>
           <button class="df-button" type="submit">Ver disponibilidad ↗</button>
+          <p v-if="error" role="alert" class="df-alert error df-ops-submit">{{error}}</p>
         </form>
         <div v-if="!rowsV.length" class="df-empty">No hay vehículos disponibles en estas fechas.</div>
         <div v-else class="df-tablescroll"><table class="df-table"><thead><tr><th>Modelo</th><th>Año</th><th>Categoría</th><th>Capacidad</th><th>Tarifa / día</th></tr></thead><tbody><tr v-for="v in rowsV" :key="v.id"><td>{{v.marca}} {{v.modelo}}</td><td>{{v.anio}}</td><td>{{v.categoria}}</td><td>{{v.pasajeros}} pasajeros</td><td>{{pesos(v.tarifaDiaria)}}</td></tr></tbody></table></div>
@@ -247,7 +280,7 @@ watch(()=>route.path,()=>{buscar.value='';success.value='';void cargar()})
       <template v-else>
         <label class="df-field df-ops-search">Filtrar registros<input v-model="buscar" type="search" placeholder="Buscar en la tabla…"></label>
         <div v-if="loading" class="df-empty">Consultando base de datos…</div>
-        <div v-else-if="!filtrados.length" class="df-empty">No hay registros que coincidan con el filtro.</div>
+        <div v-else-if="modulo==='cotizaciones' ? !cotizacionesFiltradas.length : !filtrados.length" class="df-empty">{{modulo==='cotizaciones'?'No hay propuestas para esta consulta. Las nuevas solicitudes de cotización aparecerán aquí.':'No hay registros que coincidan con el filtro.'}}</div>
         <div v-else class="df-tablescroll"><table class="df-table">
           <thead v-if="modulo==='documentos'"><tr><th>Vehículo</th><th>Tipo</th><th>Referencia</th><th>Vencimiento</th><th>Estado</th><th>Acción</th></tr></thead>
           <thead v-else-if="modulo==='mantenimientos'"><tr><th>Vehículo</th><th>Trabajo</th><th>Programación</th><th>Estado</th><th>Acción</th></tr></thead>
@@ -257,13 +290,22 @@ watch(()=>route.path,()=>{buscar.value='';success.value='';void cargar()})
           <tbody v-if="modulo==='documentos'"><tr v-for="d in rowsD.filter(x=>JSON.stringify(x).toLowerCase().includes(buscar.toLowerCase()))" :key="d.id"><td>{{d.placa}}</td><td>{{d.tipo_documento}}</td><td>{{d.numero_documento||'—'}}</td><td>{{d.fecha_vencimiento}}</td><td><span class="df-status">{{d.estado}}</span></td><td><button class="df-button mini" @click="editar(d)">Editar</button></td></tr></tbody>
           <tbody v-else-if="modulo==='mantenimientos'"><tr v-for="m in rowsM.filter(x=>JSON.stringify(x).toLowerCase().includes(buscar.toLowerCase()))" :key="m.id"><td>{{m.placa}}</td><td><b>{{m.tipo}}</b><div>{{m.descripcion}}</div></td><td>{{m.fecha_programada}}</td><td><span class="df-status">{{m.estado}}</span></td><td><div class="df-actions"><button v-if="m.estado==='PROGRAMADO'" @click="cambiar(m.id,'EN_PROCESO')">Iniciar</button><button v-if="m.estado==='EN_PROCESO'" @click="cambiar(m.id,'FINALIZADO')">Finalizar</button><button v-if="['PROGRAMADO','EN_PROCESO'].includes(m.estado)" @click="cambiar(m.id,'CANCELADO')">Cancelar</button></div></td></tr></tbody>
           <tbody v-else-if="modulo==='validacion-conductor'"><tr v-for="c in rowsC.filter(x=>JSON.stringify(x).toLowerCase().includes(buscar.toLowerCase()))" :key="c.id"><td><b>{{c.nombre_completo}}</b><div>{{c.numero_documento}}</div></td><td>{{c.nombre_entidad}}</td><td>{{c.numero_licencia}}</td><td><span class="df-status">{{c.licencia_vigente?'Vigente':'No habilitada'}}</span><div>{{c.fecha_vencimiento_licencia}}</div></td><td><button class="df-button mini" @click="activar('conductor',c.id,!c.activo)">{{c.activo?'Desactivar':'Activar'}}</button></td></tr></tbody>
-          <tbody v-else-if="modulo==='cotizaciones'"><tr v-for="q in rowsQ.filter(x=>JSON.stringify(x).toLowerCase().includes(buscar.toLowerCase()))" :key="q.id"><td>{{q.codigo}}</td><td>{{q.numero_version}}</td><td>{{q.valida_hasta}}</td><td>{{pesos(q.valor_total)}}</td><td><span class="df-status">{{q.estado}}</span></td><td><div class="df-actions"><button v-if="q.estado==='BORRADOR'" @click="cambiar(q.id,'ENVIADA')">Enviar</button><small v-if="q.estado==='ENVIADA'">En espera de decisión del cliente</small><button v-if="['BORRADOR','ENVIADA'].includes(q.estado)" @click="cambiar(q.id,'ANULADA')">Anular</button></div></td></tr></tbody>
+          <tbody v-else-if="modulo==='cotizaciones'"><tr v-for="q in cotizacionesFiltradas" :key="q.id"><td><b>{{q.codigo}}</b><p class="df-meta">{{solicitudDe(q)?.cliente}}<br>{{solicitudDe(q)?.vehiculo}}<br><span v-if="solicitudDe(q)">{{periodoQ(q)}}</span></p></td><td>{{q.numero_version}}</td><td>{{q.valida_hasta}}</td><td>{{pesos(q.valor_total)}}</td><td><span class="df-status">{{nombreCotizacion(['BORRADOR','ENVIADA'].includes(q.estado)&&q.valida_hasta<hoy?'VENCIDA':q.estado)}}</span><p class="df-meta">{{q.estado==='BORRADOR'?'Todavía no publicada':q.estado==='ENVIADA'?'Visible para el cliente':q.estado==='ACEPTADA'?'Lista para confirmar la reserva':''}}</p></td><td><div class="df-actions"><button v-if="q.estado==='BORRADOR'" :disabled="saving" @click="revisarBorrador(q)">Revisar / enviar</button><RouterLink v-if="q.estado==='ACEPTADA'" class="df-button dark mini" :to="{path:'/solicitudes',query:{codigo:q.codigo}}">Gestionar reserva</RouterLink><button v-if="['BORRADOR','ENVIADA'].includes(q.estado)" :disabled="saving" @click="accionCotizacion(q)">Anular</button></div><p v-if="errorFila?.id===q.id" role="alert" class="df-alert error">{{errorFila.mensaje}}</p></td></tr></tbody>
           <tbody v-else><tr v-for="u in rowsU.filter(x=>JSON.stringify(x).toLowerCase().includes(buscar.toLowerCase()))" :key="u.id"><td>{{u.nombre}} {{u.apellido}}</td><td>{{u.correo}}</td><td>{{u.roles}}</td><td><span class="df-status">{{u.activo?'Activa':'Suspendida'}}</span></td><td><button class="df-button mini" :disabled="u.id===propio" @click="activar('usuario',u.id,!u.activo)">{{u.activo?'Desactivar':'Activar'}}</button> <button class="df-button mini" @click="abrirClave(u)">Cambiar contraseña</button></td></tr></tbody>
         </table></div>
       </template>
+      <DialogoBase v-if="cotizacionEditando" :titulo="'Revisar propuesta '+cotizacionEditando.codigo" :ocupado="saving" @cerrar="cotizacionEditando=null">
+        <p class="df-meta">Importe calculado: <b>{{pesos(cotizacionEditando.valor_total)}}</b>. La publicación no confirma el alquiler ni realiza un pago.</p>
+        <form @submit.prevent="guardarBorrador(true)">
+          <label class="df-field">Válida hasta<input v-model="datosEdicion.validaHasta" type="date" :min="hoy" required /></label>
+          <label class="df-field">Observaciones para el cliente<textarea v-model="datosEdicion.observaciones" maxlength="1000" /></label>
+          <p v-if="errorEdicion" class="df-alert error" role="alert">{{errorEdicion}}</p>
+          <div class="df-actions"><button class="df-button" :disabled="saving" type="submit">Publicar para el cliente</button><button class="df-button dark" :disabled="saving || !datosEdicion.validaHasta || datosEdicion.validaHasta<hoy" type="button" @click="guardarBorrador(false)">Guardar borrador</button></div>
+        </form>
+      </DialogoBase>
       <DialogoBase v-if="cuentaClave" titulo="Actualizar credencial" :ocupado="saving" @cerrar="cuentaClave=null;claveNueva='';claveRepetida=''">
         <p class="df-meta">Cuenta: {{cuentaClave.correo}}. Se cerrarán todas sus sesiones anteriores.</p>
-        <form @submit.prevent="guardarClave"><label class="df-field">Nueva contraseña (mínimo 12 caracteres)<input v-model="claveNueva" type="password" minlength="12" maxlength="72" autocomplete="new-password" required /></label><label class="df-field">Confirmar contraseña<input v-model="claveRepetida" type="password" minlength="12" maxlength="72" autocomplete="new-password" required /></label><p v-if="errorClave" class="df-alert error" role="alert">{{errorClave}}</p><button class="df-button" :disabled="saving" type="submit">Actualizar contraseña</button></form>
+        <form @submit.prevent="guardarClave"><label class="df-field">Nueva contraseña (mínimo 12 caracteres)<PasswordInput id="admin-nueva-clave" v-model="claveNueva" minlength="12" maxlength="72" autocomplete="new-password" required /></label><label class="df-field">Confirmar contraseña<PasswordInput id="admin-confirmar-clave" v-model="claveRepetida" minlength="12" maxlength="72" autocomplete="new-password" required /></label><p v-if="errorClave" class="df-alert error" role="alert">{{errorClave}}</p><button class="df-button" :disabled="saving" type="submit">Actualizar contraseña</button></form>
       </DialogoBase>
     </section>
   </DemoLayout>

@@ -62,6 +62,12 @@ data class CotizacionNueva(
     val observaciones: String? = null,
 )
 
+/** Datos que se pueden revisar antes de publicar una propuesta; la tarifa no se altera. */
+data class CotizacionEdicion(
+    @field:NotNull val validaHasta: LocalDate,
+    @field:Size(max=1000) val observaciones: String? = null,
+)
+
 /** Transición solicitada; cada módulo valida sus estados permitidos. */
 data class EstadoOperacion(@field:NotBlank val estado: String)
 /** Suspensión o habilitación lógica sin eliminación de registros. */
@@ -277,6 +283,8 @@ class OperacionAdminController(private val jdbc: JdbcTemplate) {
             ?: throw RecursoNoEncontradoException("Solicitud inexistente")
         if (importe.second !in setOf("RECIBIDA","EN_REVISION","COTIZADA","PENDIENTE_APROBACION"))
             throw ConflictoException("Solo se cotizan solicitudes pendientes de confirmacion")
+        if(existe("SELECT COUNT(*) FROM pagos_reserva WHERE solicitud_id=? AND estado NOT IN ('PENDIENTE','RECHAZADO')",req.solicitudId))
+            throw ConflictoException("Resuelva primero el pago existente antes de generar otra propuesta")
         jdbc.update("UPDATE cotizaciones SET estado='VENCIDA',actualizado_en=NOW() WHERE solicitud_id=? AND estado IN ('BORRADOR','ENVIADA') AND valida_hasta<CURRENT_DATE",req.solicitudId)
         if(existe("SELECT COUNT(*) FROM cotizaciones WHERE solicitud_id=? AND estado IN ('BORRADOR','ENVIADA','ACEPTADA')",req.solicitudId))
             throw ConflictoException("Ya existe una propuesta activa para esta solicitud")
@@ -286,7 +294,24 @@ class OperacionAdminController(private val jdbc: JdbcTemplate) {
             (solicitud_id,numero_version,valida_hasta,subtotal,valor_total,creado_por_usuario_id,observaciones)
             VALUES (?,?,?,?,?,?,?) RETURNING id""",Long::class.java,req.solicitudId,version,
             req.validaHasta,importe.first,importe.first,cuenta,req.observaciones?.trim())!!
+        jdbc.update("""INSERT INTO detalles_cotizacion(cotizacion_id,concepto,cantidad,valor_unitario)
+            VALUES (?,'Alquiler del periodo solicitado',1,?)""",id,importe.first)
         jdbc.update("UPDATE solicitudes SET estado='COTIZADA',actualizado_en=NOW() WHERE id=?",req.solicitudId)
+        return cotizaciones().first { (it["id"] as Number).toLong() == id }
+    }
+
+    /** Ajusta un borrador antes de enviarlo, manteniendo intacto el importe calculado. */
+    @PatchMapping("/cotizaciones/{id}/borrador")
+    @Transactional
+    fun editarCotizacion(@PathVariable id: Long,@Valid @RequestBody req: CotizacionEdicion): Map<String, Any?> {
+        if (req.validaHasta.isBefore(LocalDate.now())) throw IllegalArgumentException("La vigencia no puede estar vencida")
+        val solicitud = jdbc.query("SELECT s.estado FROM solicitudes s JOIN cotizaciones c ON c.solicitud_id=s.id WHERE c.id=? FOR UPDATE OF s", { rs,_ -> rs.getString(1) },id).firstOrNull()
+            ?: throw RecursoNoEncontradoException("Cotización inexistente")
+        if(solicitud !in setOf("RECIBIDA","EN_REVISION","COTIZADA","PENDIENTE_APROBACION"))
+            throw ConflictoException("La solicitud ya no admite propuestas")
+        val cambio=jdbc.update("""UPDATE cotizaciones SET valida_hasta=?,observaciones=?,actualizado_en=NOW()
+            WHERE id=? AND estado='BORRADOR'""",req.validaHasta,req.observaciones?.trim(),id)
+        if(cambio!=1) throw ConflictoException("Solo se puede editar un borrador")
         return cotizaciones().first { (it["id"] as Number).toLong() == id }
     }
 
