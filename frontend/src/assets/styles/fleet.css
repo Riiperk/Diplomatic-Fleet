@@ -184,3 +184,21 @@
 .df-catalog-page .df-card-media .df-foto-lienzo img{position:absolute;object-fit:cover;}
 @media(max-width:800px){.df-catalog-page .df-hero-art{grid-column:1;grid-row:2;}}
 .df-catalog-page .df-hero .eyebrow{font-family:'DM Sans',Arial,sans-serif;}
+
+/* Correccion de interaccion V13: errores junto a los controles y flujo de cotizacion. */
+.df-filter .df-periodo-error{flex:0 0 100%;margin:0;min-width:0}
+.df-periodo-error.df-meta{color:#d4d4da}
+.df-catalog-page .df-filter input[aria-invalid=true]{border-color:#ff5367;outline:1px solid #ff5367}
+.df-catalog-actions{display:flex;flex-direction:column;gap:8px;align-items:stretch;flex-shrink:0}
+.df-catalog-actions .df-button{white-space:nowrap;min-width:94px;text-align:center}
+.df-quote-guide{border:2px solid #777;border-left:6px solid #e92f43;padding:20px;margin:0 0 22px;background:#f5f3ed;color:#151515;line-height:1.55}
+.df-quote-guide h3,.df-quote-item h3{margin:0 0 8px;font:900 30px/1.05 'Barlow Condensed',Impact,sans-serif;text-transform:uppercase}
+.df-quote-guide p{margin:0 0 14px;font-size:14px;max-width:920px}
+.df-quote-guide .df-button{margin:4px 10px 4px 0}
+.df-quote-summary{display:flex;flex-wrap:wrap;gap:16px;margin:12px 0}.df-quote-summary span{padding:7px 12px;border:2px solid #555}.df-quote-summary b{font-size:20px}
+.df-quote-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:18px;margin-bottom:22px}
+.df-quote-item{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:16px;border:2px solid #777;background:#fff;color:#171717;margin:8px 0}
+.df-quote-propuesta{margin:0;box-shadow:5px 5px #0a0a0a}.df-quote-item p,.df-quote-item dl{margin:0}.df-quote-item dl{display:grid;grid-template-columns:1fr auto;gap:7px;width:100%;padding:12px 0;border-block:1px solid #888}.df-quote-item dd{margin:0;text-align:right}.df-quote-item .df-status{align-self:flex-start}
+.df-catalog-page .df-quote-guide,.df-catalog-page .df-quote-item{background:#202027;color:#f8f5ef;border-color:#6a6a76}.df-catalog-page .df-quote-guide{border-left-color:#ee2943}.df-catalog-page .df-quote-item .df-meta{color:#d2d2d8}.df-catalog-page .df-quote-item .df-status{border:1px solid #a6a6ae}.df-catalog-page .df-quote-guide .df-button.light{color:#111}
+.df-quote-item .df-alert{width:100%;margin:4px 0}.df-ops .df-ops-filters .df-ops-submit{grid-column:1/-1;margin:0}
+@media(max-width:480px){.df-catalog-actions{width:100%;flex-direction:row;flex-wrap:wrap}.df-catalog-actions .df-button{flex:1}.df-quote-guide{padding:14px}}

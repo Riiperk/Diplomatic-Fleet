@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
+import PasswordInput from './PasswordInput.vue'
 
 /**
  * Credenciales validadas que el formulario entrega a la vista de acceso.
@@ -15,7 +16,7 @@ export interface LoginCredentials {
 export type LegalDocumentType = 'terms' | 'privacy'
 
 /** Estado de la petición gestionada por LoginView; evita envíos duplicados. */
-const props = withDefaults(defineProps<{ ocupado?: boolean }>(), { ocupado: false })
+const props = withDefaults(defineProps<{ ocupado?: boolean; mensaje?: string; errorAcceso?: boolean }>(), { ocupado: false, mensaje: '', errorAcceso: false })
 
 const emit = defineEmits<{
   /**
@@ -35,7 +36,6 @@ const emit = defineEmits<{
 const email = ref('')
 const password = ref('')
 const acceptLegal = ref(false)
-const showPassword = ref(false)
 
 const errors = reactive({
   email: '',
@@ -94,13 +94,6 @@ function validateForm(): boolean {
 }
 
 /**
- * Alterna la visibilidad de la contraseña sin modificar su contenido.
- */
-function togglePasswordVisibility(): void {
-  showPassword.value = !showPassword.value
-}
-
-/**
  * Valida el formulario y entrega los datos al componente padre.
  */
 function submitForm(): void {
@@ -147,31 +140,7 @@ function submitForm(): void {
       <div class="form-field">
         <label for="password">Contraseña</label>
 
-        <div class="password-control">
-          <input
-            id="password"
-            v-model="password"
-            name="password"
-            :type="showPassword ? 'text' : 'password'"
-            autocomplete="current-password"
-            placeholder="Ingresa tu contraseña"
-            minlength="8"
-            :aria-invalid="Boolean(errors.password)"
-            aria-describedby="password-error"
-            required
-          />
-
-          <button
-            class="password-toggle"
-            type="button"
-            :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-            aria-controls="password"
-            :aria-pressed="showPassword"
-            @click="togglePasswordVisibility"
-          >
-            {{ showPassword ? '🙈' : '👁' }}
-          </button>
-        </div>
+        <PasswordInput id="password" v-model="password" name="password" autocomplete="current-password" placeholder="Ingresa tu contraseña" minlength="8" :aria-invalid="Boolean(errors.password)" aria-describedby="password-error" required />
 
         <small id="password-error" class="field-error" aria-live="polite">
           {{ errors.password }}
@@ -206,6 +175,7 @@ function submitForm(): void {
         {{ errors.legal }}
       </small>
 
+      <p v-if="mensaje && !ocupado" class="df-alert" :class="errorAcceso?'error':'ok'" :role="errorAcceso?'alert':'status'">{{mensaje}}</p>
       <button class="submit-button" type="submit" :disabled="ocupado">
         <span v-if="ocupado" class="df-inline-spinner" aria-hidden="true"></span>
         <span>{{ ocupado ? 'Verificando acceso…' : 'Iniciar sesión' }}</span>

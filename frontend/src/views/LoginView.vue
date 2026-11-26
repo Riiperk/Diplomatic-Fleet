@@ -33,8 +33,7 @@ async function handleLogin(credentials:LoginCredentials){
       <div class="access-halftone" aria-hidden="true"></div>
       <div class="access-shard" aria-hidden="true"></div>
       <div class="login-stage">
-        <LoginForm :ocupado="isAuthenticating" @submit="handleLogin" @open-legal="activeLegalModal=$event" />
-        <p v-if="loginMessage" class="form-message login-view-message" :class="{'is-error':isLoginError,'is-ok':!isLoginError}" role="status">{{ loginMessage }}</p>
+        <LoginForm :ocupado="isAuthenticating" :mensaje="loginMessage" :error-acceso="isLoginError" @submit="handleLogin" @open-legal="activeLegalModal=$event" />
       </div>
       <!-- Crear cuenta y catálogo aparecen dentro de LoginForm. -->
       <div class="academic-seal" aria-hidden="true"><span>DF</span><small>Plataforma de alquiler</small></div>

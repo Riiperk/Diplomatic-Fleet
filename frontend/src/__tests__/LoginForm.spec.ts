@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, RouterLinkStub } from '@vue/test-utils'
 
 import LoginForm from '@/components/login/LoginForm.vue'
 
@@ -9,7 +9,7 @@ describe('LoginForm', () => {
    * y presenta mensajes comprensibles para cada campo obligatorio.
    */
   it('muestra errores cuando se envía vacío', async () => {
-    const wrapper = mount(LoginForm)
+    const wrapper = mount(LoginForm, { global: { stubs: { RouterLink: RouterLinkStub } } })
 
     await wrapper.find('form').trigger('submit')
 
@@ -29,7 +29,7 @@ describe('LoginForm', () => {
    * no se entrega al componente padre.
    */
   it('rechaza un correo con formato inválido', async () => {
-    const wrapper = mount(LoginForm)
+    const wrapper = mount(LoginForm, { global: { stubs: { RouterLink: RouterLinkStub } } })
 
     await wrapper.get('#email').setValue('correo-invalido')
     await wrapper.get('#password').setValue('Demo1234')
@@ -48,7 +48,7 @@ describe('LoginForm', () => {
    * y se emiten sin almacenarse dentro del componente.
    */
   it('emite las credenciales cuando el formulario es válido', async () => {
-    const wrapper = mount(LoginForm)
+    const wrapper = mount(LoginForm, { global: { stubs: { RouterLink: RouterLinkStub } } })
 
     await wrapper.get('#email').setValue('  ADMIN@DIPLOMATICFLEET.CO  ')
 
@@ -71,10 +71,10 @@ describe('LoginForm', () => {
    * de la contraseña sin modificar su contenido.
    */
   it('permite mostrar y ocultar la contraseña', async () => {
-    const wrapper = mount(LoginForm)
+    const wrapper = mount(LoginForm, { global: { stubs: { RouterLink: RouterLinkStub } } })
 
     const passwordInput = wrapper.get('#password')
-    const toggleButton = wrapper.get('.password-toggle')
+    const toggleButton = wrapper.get('button[aria-controls="password"]')
 
     expect(passwordInput.attributes('type')).toBe('password')
 
@@ -94,7 +94,7 @@ describe('LoginForm', () => {
    * qué documento debe presentarse.
    */
   it('emite la solicitud de apertura de los documentos legales', async () => {
-    const wrapper = mount(LoginForm)
+    const wrapper = mount(LoginForm, { global: { stubs: { RouterLink: RouterLinkStub } } })
     const legalButtons = wrapper.findAll('.legal-link')
 
     await legalButtons[0]!.trigger('click')
